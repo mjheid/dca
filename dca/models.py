@@ -7,7 +7,7 @@ def MeanAct(x):
 def DispAct(x):
     return torch.clamp(torch.nn.Softplus(x), 1e-4, 1e4)
 
-class ZINBAutoEncoder():
+class ZINBAutoEncoder(torch.nn.Module):
     def __init__(self, input_size, encoder_size, bottleneck_size):
         super().__init__()
 

@@ -8,8 +8,9 @@ import io
 class GeneCountData(torch.utils.data.Dataset):
     """Dataset of GeneCounts for DCA"""
 
-    def __init__(self, path='data/francesconi/francesconi_withDropout.csv', transpose=False, check_count=False,
-                test_split=False, loginput=True, norminput=True, cuda=None):
+    def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
+                transpose=False, check_count=False, test_split=False, loginput=True,
+                 norminput=True):
         """
         Args:
             
@@ -25,9 +26,9 @@ class GeneCountData(torch.utils.data.Dataset):
                             normalize_input=norminput)
         
         self.adata = adata
-        # TODO: to cuda
-        self.data = torch.from_numpy(np.array(adata.X))
-        self.size_factors = torch.from_numpy(np.array(adata.obs.size_factors))
+
+        self.data = torch.from_numpy(np.array(adata.X)).to(device)
+        self.size_factors = torch.from_numpy(np.array(adata.obs.size_factors)).to(device)
         self.gene_num = self.data.shape[1]
         
 
