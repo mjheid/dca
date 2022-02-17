@@ -6,3 +6,7 @@ build
 .Rproj.user
 docs/build
 data/simulation/
+.ipynb_checkpoints
+data/
+*.pdf
+*.zip
