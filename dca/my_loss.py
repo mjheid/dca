@@ -1,4 +1,3 @@
-from turtle import forward
 import torch
 
 def _nan2zero(x):
@@ -66,7 +65,7 @@ class ZINBLoss(NBLoss):
         super().__init__(self, **kwargs)
         self.ridge_lambda = ridge_lambda
     
-    def forward(self, x, pi, mean, theta, red_mean=True):
+    def forward(self, x, mean, theta, pi, red_mean=True):
         nb_case = super().forward(x, mean, theta, red_mean=False) - torch.log(1.0-pi+self.eps)
 
         mean = mean = self.scale_factor

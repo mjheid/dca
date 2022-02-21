@@ -10,7 +10,7 @@ class GeneCountData(torch.utils.data.Dataset):
 
     def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
                 transpose=False, check_count=False, test_split=False, loginput=True,
-                 norminput=True):
+                 norminput=True, train=None, val=None):
         """
         Args:
             
@@ -30,6 +30,13 @@ class GeneCountData(torch.utils.data.Dataset):
         self.data = torch.from_numpy(np.array(adata.X)).to(device)
         self.size_factors = torch.from_numpy(np.array(adata.obs.size_factors)).to(device)
         self.gene_num = self.data.shape[1]
+
+        if train is not None:
+            self.data = self.data[:int(train*self.gene_num)]
+            self.size_factors = self.size_factors[:int(train*self.gene_num)]
+        if val is not None:
+            self.data = self.data[int(train*self.gene_num):]
+            self.size_factors = self.size_factors[int(train*self.gene_num):]
         
 
     def __len__(self):
