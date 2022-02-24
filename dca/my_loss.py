@@ -1,19 +1,5 @@
 import torch
 
-def _nan2zero(x):
-    return torch.where(torch.isnan(x), torch.zeros_like(x), x)
-
-def _nan2inf(x):
-    return torch.where(torch.isnan(x), torch.zeros_like(x)+torch.tensor(['inf']), x)
-
-def _nelem(x):
-    nelem = torch.sum(torch.nan_to_num(x))
-    return torch.where(torch.equal(nelem, 0.), 1., nelem).type(x.dtype)
-
-def _reduce_mean(x):
-    nelem = _nelem(x)
-    x = _nan2zero(x)
-    return torch.div(torch.sum(x), nelem)
 
 class NBLoss(torch.nn.Module):
     """
@@ -25,17 +11,16 @@ class NBLoss(torch.nn.Module):
         self.eps = 1e-10
         self.scale_factor = 1.0
         self.debug = debug
-        self.masking = masking
+        self.mask = masking
 
     def forward(self, x, mean, theta, red_mean=True):
         
         mean = mean * self.scale_factor
 
-        if self.masking:
-            nelem = _nelem(x)
-            x = _nan2zero(x)
+        if self.mask:
+            x = torch.nan_to_num(x, posinf=float('inf'), neginf=-float('inf'))
         
-        theta = torch.minimum(theta, 1e6)
+        theta = torch.minimum(theta, torch.tensor([1e6]))
 
         t1 = torch.lgamma(theta+self.eps) + torch.lgamma(x+1.0) - torch.lgamma(x+theta+self.eps)
         t2 = (theta+x) * torch.log(1.0 + (mean/(theta+self.eps))) + (x * (torch.log(theta+self.eps) - torch.log(mean+self.eps)))
@@ -46,11 +31,11 @@ class NBLoss(torch.nn.Module):
         else:
             final = t1 + t2
         
-        final = _nan2inf(final)
+        final = torch.nan_to_num(final, nan=float('inf'), posinf=float('inf'), neginf=-float('inf'))
 
         if red_mean:
             if self.masking:
-                final = _reduce_mean(final)
+                final = torch.nanmean(final)
             else:
                 final = torch.mean(final)
         
@@ -68,22 +53,23 @@ class ZINBLoss(NBLoss):
     def forward(self, x, mean, theta, pi, red_mean=True):
         nb_case = super().forward(x, mean, theta, red_mean=False) - torch.log(1.0-pi+self.eps)
 
-        mean = mean = self.scale_factor
-        theta = torch.minimum(theta, 1e6)
+        mean = mean * self.scale_factor
+
+        theta = torch.minimum(theta, torch.tensor([1e6]))
 
         zero_nb = torch.pow(theta/(theta+mean+self.eps), theta)
         zero_case = -torch.log(pi + ((1.0-pi)*zero_nb)+self.eps)
-        result = torch.where(torch.less(mean, 1e-8), zero_case, nb_case)
+        result = torch.where(torch.less(mean, torch.tensor([1e-8])), zero_case, nb_case)
         ridge = self.ridge_lambda * torch.square(pi)
         result += ridge
 
         if red_mean:
-            if self.masking:
-                result = _reduce_mean(result)
+            if self.mask:
+                result = torch.nanmean(result)
             else:
                 result = torch.mean(result)
         
-        result = _nan2inf(result)
+        result = torch.nan_to_num(result, nan=float('inf'), posinf=float('inf'), neginf=-float('inf'))
 
         if self.debug:
             print('Implement debug stuff!')

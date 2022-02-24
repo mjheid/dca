@@ -10,3 +10,4 @@ data/simulation/
 data/
 *.pdf
 *.zip
+.vscode

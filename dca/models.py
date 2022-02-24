@@ -1,14 +1,23 @@
 import torch
 
-def MeanAct(x):
-    return torch.clamp(torch.exp(x), 1e-5, 1e6)
+class MeanAct(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, x):
+        return torch.clamp(torch.exp(x), 1e-5, 1e6)
 
-def DispAct(x):
-    return torch.clamp(torch.nn.Softplus(x), 1e-4, 1e4)
+class DispAct(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.softplus = torch.nn.Softplus()
+    
+    def forward(self, x):
+        return torch.clamp(self.softplus(x), 1e-4, 1e4)
 
 def init_weights(layer):
     if isinstance(layer, torch.nn.Linear):
-        torch.nn.init.xavier_uniform(layer.weight)
+        torch.nn.init.xavier_uniform_(layer.weight)
 
 class AutoEncoder(torch.nn.Module):
     def __init__(self, input_size, encoder_size, bottleneck_size):
@@ -46,17 +55,17 @@ class AutoEncoder(torch.nn.Module):
 
 
 class NBAutoEncoder(AutoEncoder):
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
+    def __init__(self, input_size, encoder_size, bottleneck_size):
+        super().__init__(input_size, encoder_size, bottleneck_size)
 
         self.mean = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.input_size),
-            MeanAct()
+            #MeanAct()
             )
 
         self.disp = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.input_size),
-            DispAct()
+            #DispAct()
             )
         
         self.mean.apply(init_weights)
@@ -73,9 +82,9 @@ class NBAutoEncoder(AutoEncoder):
 
         
 
-class ZINBAutoEncoder(torch.nn.Module):
-    def __init__(self,**kwds):
-        super().__init__(**kwds)
+class ZINBAutoEncoder(AutoEncoder):
+    def __init__(self, input_size, encoder_size, bottleneck_size):
+        super().__init__(input_size, encoder_size, bottleneck_size)
 
         self.mean = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.input_size),
