@@ -1,24 +1,28 @@
 import torch
 from torch.utils.data import DataLoader
-from datasets import GeneCountData
-from my_loss import ZINBLoss
-from models import ZINBAutoEncoder
+from dca.datasets import GeneCountData
+from dca.my_loss import ZINBLoss, NBLoss
+from dca.models import ZINBAutoEncoder, NBAutoEncoder
 
-def train(path='', EPOCH=100, lr=0.001):
+def train(path='', EPOCH=300, lr=0.001, batch=32,
+        transpose=True, reduce_lr=10, early_stopping=15):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    train_dataset = GeneCountData(path, device, train=0.9)
-    val_dataset = GeneCountData(path, device, val=0.1)
-    input_size = train_dataset.gene_num
 
-    trainDataLoader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    valDataLoader = DataLoader(val_dataset, batch_size=32)
+    dataset = GeneCountData(path, device, transpose=transpose)
+    input_size = dataset.gene_num
+
+    dataset.set_mode('train')
+    trainDataLoader = DataLoader(dataset, batch_size=32, shuffle=True)
+    dataset.set_mode('val')
+    valDataLoader = DataLoader(dataset, batch_size=32)
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
+    # dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     optimizer = torch.optim.RMSprop(dca.parameters(), lr=lr)
+    # loss_zinb = NBLoss()
     loss_zinb = ZINBLoss()
-    #loss_zinb = torch.nn.MSELoss()
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr)
 
     best_val_loss = float('inf')
     earlystopping = True
@@ -27,11 +31,14 @@ def train(path='', EPOCH=100, lr=0.001):
     for epoch in range(EPOCH):
         if  earlystopping:
             train_loss = 0
+            dca.train()
+            dataset.set_mode('train')
             for data, size_factor in trainDataLoader:
 
                 mean, disp, drop = dca(data)
                 loss = loss_zinb(data, mean, disp, drop)
-                #loss = loss_zinb(mean, data)
+                # mean, disp = dca(data)
+                # loss = loss_zinb(data, mean, disp)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -44,10 +51,13 @@ def train(path='', EPOCH=100, lr=0.001):
 
             val_loss = 0
             with torch.no_grad():
+                dca.eval()
+                dataset.set_mode('val')
                 for data, size_factor in valDataLoader:
                     mean, disp, drop = dca(data)
                     loss = loss_zinb(data, mean, disp, drop)
-                    #loss = loss_zinb(mean, data)
+                    # mean, disp = dca(data)
+                    # loss = loss_zinb(data, mean, disp)
 
                     val_loss += loss.item()
                 
@@ -57,14 +67,28 @@ def train(path='', EPOCH=100, lr=0.001):
                 if avg_loss < best_val_loss:
                     best_val_loss = avg_loss
                     es_count = 0
+                    torch.save(dca.state_dict(), 'dca.pt')
                 else:
                     es_count += 1
-            if es_count >= 10:
+            if es_count >= early_stopping:
                 earlystopping = False
         else:
             pass
-        
     
     print(f'Best val loss: {best_val_loss}')
 
-train('/home/kaies/csb/dca/data/francesconi/francesconi_withDropout.csv')
+    dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
+    #dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
+    dca.load_state_dict(torch.load('dca.pt'))
+    dca.eval()
+
+    dataset.set_mode('test')
+    eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
+    for data, size_factor in eval_dataloader:
+        mean, disp, drop = dca(data)
+        #mean, disp = dca(data)
+    adata = dataset.adata
+    adata.X = mean.detach().numpy()
+    
+    return adata
+    
