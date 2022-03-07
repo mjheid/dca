@@ -42,6 +42,7 @@ def dca(adata,
         return_info=False,
         copy=False,
         check_counts=True,
+        transpose=False,
         ):
     """Deep count autoencoder(DCA) API.
 
@@ -143,7 +144,7 @@ def dca(adata,
     are true, a tuple of anndata and model is returned in that order.
     """
 
-    assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
+    #assert isinstance(adata, anndata.AnnData), 'adata must be an AnnData instance'
     assert mode in ('denoise', 'latent'), '%s is not a valid mode.' % mode
 
     # set seed for reproducibility
@@ -154,7 +155,7 @@ def dca(adata,
 
     # this creates adata.raw with raw counts and copies adata if copy==True
     adata = read_dataset(adata,
-                         transpose=False,
+                         transpose=transpose,
                          test_split=False,
                          copy=copy,
                          check_counts=check_counts)

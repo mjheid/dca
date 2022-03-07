@@ -1,3 +1,4 @@
+from xmlrpc.client import INVALID_XMLRPC
 import torch
 import numpy as np
 import pickle, os, numbers
@@ -15,16 +16,16 @@ class GeneCountData(torch.utils.data.Dataset):
     """Dataset of GeneCounts for DCA"""
 
     def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
-                transpose=False, check_count=False, test_split=False, loginput=True,
-                 norminput=True, train=None, val=None):
+                transpose=True, check_count=False, test_split=True, loginput=False,
+                 norminput=True):
         """
         Args:
             
         """
         adata = read_dataset(path,
-                            transpose=False, # assume gene x cell by default
-                            check_counts=False,
-                            test_split=False)
+                            transpose=transpose, # assume gene x cell by default
+                            check_counts=check_count,
+                            test_split=test_split)
 
         adata = normalize(adata,
                             size_factors=True,
@@ -37,22 +38,52 @@ class GeneCountData(torch.utils.data.Dataset):
         self.size_factors = torch.from_numpy(np.array(adata.obs.size_factors)).to(device)
         self.gene_num = self.data.shape[1]
 
-        if train is not None:
-            self.data = self.data[:int(train*self.gene_num)]
-            self.size_factors = self.size_factors[:int(train*self.gene_num)]
-        if val is not None:
-            self.data = self.data[int(val*self.gene_num):]
-            self.size_factors = self.size_factors[int(val*self.gene_num):]
+        if test_split:
+            adata = adata[adata.obs.dca_split == 'train']
+
+            train_idx, test_idx = train_test_split(np.arange(adata.n_obs), test_size=0.1, random_state=42)
+            spl = pd.Series(['train'] * adata.n_obs)
+            spl.iloc[test_idx] = 'test'
+            adata.obs['dca_split'] = spl.values
+
+            self.val_data = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'test'].X)).to(device)
+            self.val_size_factors = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'test'].obs.size_factors)).to(device)
+
+            self.train_data = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'train'].X)).to(device)
+            self.train_size_factors = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'train'].obs.size_factors)).to(device)
         
+        self.train = 0
+        self.val = 1
+        self.test = 2
+        self.mode = self.val
+    
+    def set_mode(self, mode):
+        if mode == 'train':
+            self.mode = self.train
+        elif mode == 'val':
+            self.mode = self.val
+        elif mode == 'test':
+            self.mode = self.test
+
 
     def __len__(self):
-
-        return self.data.shape[0]
+        if self.mode == self.train:
+            return self.train_data.shape[0]
+        elif self.mode == self.val:
+            return self.val_data.shape[0]
+        else:
+            return self.data.shape[0]
 
     def __getitem__(self, idx):
-
-        data = self.data[idx]
-        size_factors = self.size_factors[idx]
+        if self.mode == self.train:
+            data = self.train_data[idx]
+            size_factors = self.train_size_factors[idx]
+        elif self.mode == self.val:
+            data = self.val_data[idx]
+            size_factors = self.val_size_factors[idx]
+        else:
+            data = self.data[idx]
+            size_factors = self.size_factors[idx]
 
         return data, size_factors
 

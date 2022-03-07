@@ -34,7 +34,7 @@ class NBLoss(torch.nn.Module):
         final = torch.nan_to_num(final, nan=float('inf'), posinf=float('inf'), neginf=-float('inf'))
 
         if red_mean:
-            if self.masking:
+            if self.mask:
                 final = torch.nanmean(final)
             else:
                 final = torch.mean(final)

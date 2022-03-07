@@ -20,34 +20,51 @@ def train(path='', EPOCH=100, lr=0.001):
     #loss_zinb = torch.nn.MSELoss()
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min')
 
+    best_val_loss = float('inf')
+    earlystopping = True
+    es_count = 0
+
     for epoch in range(EPOCH):
-        train_loss = 0
-        for data, size_factor in trainDataLoader:
+        if  earlystopping:
+            train_loss = 0
+            for data, size_factor in trainDataLoader:
 
-            mean, disp, drop = dca(data)
-            loss = loss_zinb(data, mean, disp, drop)
-            #loss = loss_zinb(mean, data)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            train_loss += loss.item()
-
-        avg_loss = train_loss / len(trainDataLoader)
-        print(f'Epoch: {epoch}, Avg train loss: {avg_loss}')
-
-        val_loss = 0
-        with torch.no_grad():
-            for data, size_factor in valDataLoader:
                 mean, disp, drop = dca(data)
                 loss = loss_zinb(data, mean, disp, drop)
                 #loss = loss_zinb(mean, data)
 
-                val_loss += loss.item()
-            
-            avg_loss = val_loss / len(valDataLoader)
-            scheduler.step(avg_loss)
-            print(f'Epoch: {epoch}, Avg val loss: {avg_loss}')
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                train_loss += loss.item()
+
+            avg_loss = train_loss / len(trainDataLoader)
+            print(f'Epoch: {epoch}, Avg train loss: {avg_loss}')
+
+            val_loss = 0
+            with torch.no_grad():
+                for data, size_factor in valDataLoader:
+                    mean, disp, drop = dca(data)
+                    loss = loss_zinb(data, mean, disp, drop)
+                    #loss = loss_zinb(mean, data)
+
+                    val_loss += loss.item()
+                
+                avg_loss = val_loss / len(valDataLoader)
+                scheduler.step(avg_loss)
+                print(f'Epoch: {epoch}, Avg val loss: {avg_loss}')
+                if avg_loss < best_val_loss:
+                    best_val_loss = avg_loss
+                    es_count = 0
+                else:
+                    es_count += 1
+            if es_count >= 10:
+                earlystopping = False
+        else:
+            pass
+        
+    
+    print(f'Best val loss: {best_val_loss}')
 
 train('/home/kaies/csb/dca/data/francesconi/francesconi_withDropout.csv')

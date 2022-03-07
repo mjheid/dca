@@ -60,12 +60,12 @@ class NBAutoEncoder(AutoEncoder):
 
         self.mean = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.input_size),
-            #MeanAct()
+            MeanAct()
             )
 
         self.disp = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.input_size),
-            #DispAct()
+            DispAct()
             )
         
         self.mean.apply(init_weights)
