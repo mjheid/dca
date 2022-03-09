@@ -1,14 +1,10 @@
-from xmlrpc.client import INVALID_XMLRPC
 import torch
-import numpy as np
-import pickle, os, numbers
-
 import numpy as np
 import scipy as sp
 import pandas as pd
 import scanpy as sc
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import scale
+#from sklearn.preprocessing import scale
 
 
 
@@ -16,7 +12,7 @@ class GeneCountData(torch.utils.data.Dataset):
     """Dataset of GeneCounts for DCA"""
 
     def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
-                transpose=True, check_count=False, test_split=True, loginput=False,
+                transpose=True, check_count=False, test_split=True, loginput=True,
                  norminput=True):
         """
         Args:
@@ -36,6 +32,7 @@ class GeneCountData(torch.utils.data.Dataset):
 
         self.data = torch.from_numpy(np.array(adata.X)).to(device)
         self.size_factors = torch.from_numpy(np.array(adata.obs.size_factors)).to(device)
+        self.target = torch.from_numpy(np.array(adata.raw.X)).to(device)
         self.gene_num = self.data.shape[1]
 
         if test_split:
@@ -47,9 +44,11 @@ class GeneCountData(torch.utils.data.Dataset):
             adata.obs['dca_split'] = spl.values
 
             self.val_data = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'test'].X)).to(device)
+            self.val_target = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'test'].raw.X)).to(device)
             self.val_size_factors = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'test'].obs.size_factors)).to(device)
 
             self.train_data = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'train'].X)).to(device)
+            self.train_target = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'train'].raw.X)).to(device)
             self.train_size_factors = torch.from_numpy(np.array(adata[adata.obs.dca_split == 'train'].obs.size_factors)).to(device)
         
         self.train = 0
@@ -77,15 +76,18 @@ class GeneCountData(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         if self.mode == self.train:
             data = self.train_data[idx]
+            target = self.train_target[idx]
             size_factors = self.train_size_factors[idx]
         elif self.mode == self.val:
             data = self.val_data[idx]
+            target = self.val_target[idx]
             size_factors = self.val_size_factors[idx]
         else:
             data = self.data[idx]
+            target = self.target[idx]
             size_factors = self.size_factors[idx]
 
-        return data, size_factors
+        return data, target, size_factors
 
 def read_dataset(adata, transpose=False, test_split=False, copy=False, check_counts=True):
 
@@ -164,5 +166,5 @@ def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=
                                                                   index=(rownames is not None),
                                                                   header=(colnames is not None),
                                                                   float_format='%.6f')
-def read_pickle(inputfile):
-    return pickle.load(open(inputfile, "rb"))
+# def read_pickle(inputfile):
+#     return pickle.load(open(inputfile, "rb"))
