@@ -11,4 +11,5 @@ data/
 *.pdf
 *.zip
 .vscode
-.pt
+*.pt
+*.npy

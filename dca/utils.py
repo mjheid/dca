@@ -5,7 +5,8 @@ import pandas as pd
 import seaborn as sns
 import scipy as sp
 import tensorflow as tf
-from tensorflow.contrib.opt import ScipyOptimizerInterface
+import os.path
+#from tensorflow.contrib.opt import ScipyOptimizerInterface
 
 
 nb_zero = lambda t, mu: (t/(mu+t))**t
@@ -154,3 +155,12 @@ def plot_zeroinf(ad, title, mean_var_plot=False, opt_theta=True):
         f, ax = plt.subplots(1, 1, figsize=(10, 5))
         plot_mean_dropout(ad, title, ax, opt_zinb_theta=opt_theta, legend_out=True)
         plt.tight_layout()
+
+
+def save_and_load_modelweights(model, name):
+    if os.path.exists(os.path.abspath('.') + '/init_' + name + '.npy'):
+        model.set_weights(np.load('init_' + name + '.npy'), allow_pickle=True)
+        return model
+    else:
+        np.save('init_' + name, model.get_weights())
+        return model

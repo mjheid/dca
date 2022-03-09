@@ -43,6 +43,7 @@ def dca(adata,
         copy=False,
         check_counts=True,
         transpose=False,
+        name='dca',
         ):
     """Deep count autoencoder(DCA) API.
 
@@ -196,7 +197,8 @@ def dca(adata,
         'optimizer': optimizer,
         'verbose': verbose,
         'threads': threads,
-        'learning_rate': learning_rate
+        'learning_rate': learning_rate,
+        'name': name
     }
 
     hist = train(adata[adata.obs.dca_split == 'train'], net, **training_kwds)

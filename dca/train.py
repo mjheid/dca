@@ -23,6 +23,7 @@ import random
 from . import io
 from .network import AE_types
 from .hyper import hyper
+from .utils import save_and_load_modelweights
 
 import numpy as np
 import tensorflow as tf
@@ -36,7 +37,7 @@ def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=No
           epochs=300, reduce_lr=10, output_subset=None, use_raw_as_output=True,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
           validation_split=0.1, tensorboard=False, verbose=True, threads=None,
-          **kwds):
+          name='dca', **kwds):
 
     tf.compat.v1.keras.backend.set_session(
         tf.compat.v1.Session(
@@ -47,6 +48,7 @@ def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=No
         )
     )
     model = network.model
+    model = save_and_load_modelweights(model, name)
     loss = network.loss
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
@@ -105,8 +107,8 @@ def train_with_args(args):
     tf.compat.v1.keras.backend.set_session(
         tf.compat.v1.Session(
             config=tf.compat.v1.ConfigProto(
-                intra_op_parallelism_threads=args.threads,
-                inter_op_parallelism_threads=args.threads,
+                intra_op_parallelism_threads=args['threads'],
+                inter_op_parallelism_threads=args['threads'],
             )
         )
     )
@@ -117,22 +119,22 @@ def train_with_args(args):
     os.environ['PYTHONHASHSEED'] = '0'
 
     # do hyperpar optimization and exit
-    if args.hyper:
+    if args['hyper']:
         hyper(args)
         return
 
-    adata = io.read_dataset(args.input,
-                            transpose=(not args.transpose), # assume gene x cell by default
-                            check_counts=args.checkcounts,
-                            test_split=args.testsplit)
+    adata = io.read_dataset(args['input'],
+                            transpose=args['transpose'], # assume gene x cell by default
+                            check_counts=args['checkcounts'],
+                            test_split=args['testsplit'])
 
     adata = io.normalize(adata,
-                         size_factors=args.sizefactors,
-                         logtrans_input=args.loginput,
-                         normalize_input=args.norminput)
+                         size_factors=args['sizefactors'],
+                         logtrans_input=args['loginput'],
+                         normalize_input=args['norminput'])
 
-    if args.denoisesubset:
-        genelist = list(set(io.read_genelist(args.denoisesubset)))
+    if args['denoisesubset']:
+        genelist = list(set(io.read_genelist(args['denoisesubset'])))
         assert len(set(genelist) - set(adata.var_names.values)) == 0, \
                'Gene list is not overlapping with genes from the dataset'
         output_size = len(genelist)
@@ -140,47 +142,48 @@ def train_with_args(args):
         genelist = None
         output_size = adata.n_vars
 
-    hidden_size = [int(x) for x in args.hiddensize.split(',')]
-    hidden_dropout = [float(x) for x in args.dropoutrate.split(',')]
+    hidden_size = [int(x) for x in args['hiddensize'].split(',')]
+    hidden_dropout = [float(x) for x in args['dropoutrate'].split(',')]
     if len(hidden_dropout) == 1:
         hidden_dropout = hidden_dropout[0]
 
-    assert args.type in AE_types, 'loss type not supported'
+    assert args['type'] in AE_types, 'loss type not supported'
     input_size = adata.n_vars
 
     from tensorflow.python.framework.ops import disable_eager_execution
     disable_eager_execution()
 
-    net = AE_types[args.type](input_size=input_size,
+    net = AE_types[args['type']](input_size=input_size,
             output_size=output_size,
             hidden_size=hidden_size,
-            l2_coef=args.l2,
-            l1_coef=args.l1,
-            l2_enc_coef=args.l2enc,
-            l1_enc_coef=args.l1enc,
-            ridge=args.ridge,
+            l2_coef=args['l2'],
+            l1_coef=args['l1'],
+            l2_enc_coef=args['l2enc'],
+            l1_enc_coef=args['l1enc'],
+            ridge=args['ridge'],
             hidden_dropout=hidden_dropout,
-            input_dropout=args.inputdropout,
-            batchnorm=args.batchnorm,
-            activation=args.activation,
-            init=args.init,
-            debug=args.debug,
-            file_path=args.outputdir)
+            input_dropout=args['inputdropout'],
+            batchnorm=args['batchnorm'],
+            activation=args['activation'],
+            init=args['init'],
+            debug=args['debug'],
+            file_path=args['outputdir'])
 
     net.save()
     net.build()
 
     losses = train(adata[adata.obs.dca_split == 'train'], net,
-                   output_dir=args.outputdir,
-                   learning_rate=args.learningrate,
-                   epochs=args.epochs, batch_size=args.batchsize,
-                   early_stop=args.earlystop,
-                   reduce_lr=args.reducelr,
+                   output_dir=args['outputdir'],
+                   learning_rate=args['learningrate'],
+                   epochs=args['epochs'], batch_size=args['batchsize'],
+                   early_stop=args['earlystop'],
+                   reduce_lr=args['reducelr'],
                    output_subset=genelist,
-                   optimizer=args.optimizer,
-                   clip_grad=args.gradclip,
-                   save_weights=args.saveweights,
-                   tensorboard=args.tensorboard)
+                   optimizer=args['optimizer'],
+                   clip_grad=args['gradclip'],
+                   save_weights=args['saveweights'],
+                   tensorboard=args['tensorboard'],
+                   name=args['name'])
 
     if genelist:
         predict_columns = adata.var_names[[np.where(adata.var_names==x)[0][0] for x in genelist]]
@@ -188,4 +191,4 @@ def train_with_args(args):
         predict_columns = adata.var_names
 
     net.predict(adata, mode='full', return_info=True)
-    net.write(adata, args.outputdir, mode='full', colnames=predict_columns)
+    net.write(adata, args['outputdir'], mode='full', colnames=predict_columns)
