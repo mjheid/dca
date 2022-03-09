@@ -29,16 +29,19 @@ class AutoEncoder(torch.nn.Module):
 
         self.encoder = torch.nn.Sequential(
             torch.nn.Linear(self.input_size, self.encoder_size),
+            torch.nn.BatchNorm1d(self.encoder_size),
             torch.nn.ReLU()
             )
         
         self.bottleneck = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.bottleneck_size),
+            torch.nn.BatchNorm1d(self.bottleneck_size),
             torch.nn.ReLU()
             )
 
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(self.bottleneck_size, self.encoder_size),
+            torch.nn.BatchNorm1d(self.encoder_size),
             torch.nn.ReLU()
             )
         
@@ -71,11 +74,13 @@ class NBAutoEncoder(AutoEncoder):
         self.mean.apply(init_weights)
         self.disp.apply(init_weights)
     
-    def forward(self, x):
+    def forward(self, x, sf):
         x = super().forward(x)
 
-        mean = self.mean(x)
+        mean_norm = self.mean(x)
         disp = self.disp(x)
+
+        mean = mean_norm * torch.reshape(sf, (sf.shape[0], 1))
 
         return mean, disp
 
@@ -105,11 +110,13 @@ class ZINBAutoEncoder(AutoEncoder):
         self.disp.apply(init_weights)
         self.drop.apply(init_weights)
     
-    def forward(self, x):
+    def forward(self, x, sf):
         x = super().forward(x)
 
-        mean = self.mean(x)
+        mean_norm = self.mean(x)
         disp = self.disp(x)
         drop = self.drop(x)
+
+        mean = mean_norm * torch.reshape(sf, (sf.shape[0], 1))
 
         return mean, disp, drop
