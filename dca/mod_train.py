@@ -1,14 +1,31 @@
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from dca.datasets import GeneCountData
 from dca.my_loss import ZINBLoss, NBLoss
 from dca.models import ZINBAutoEncoder, NBAutoEncoder
+from dca.utils2 import save_and_load_init_model
+import random
+import numpy as np
+import os
 
-def train(path='', EPOCH=300, lr=0.001, batch=32,
-        transpose=True, reduce_lr=10, early_stopping=15):
+
+def train(path='', EPOCH=500, lr=0.001, batch=32,
+        transpose=True, reduce_lr=20, early_stopping=25,
+        name='dca', name2=None):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+    # Seed
+    seed = 42
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    os.environ['PYTHONHASHSEED'] = '0'
 
     dataset = GeneCountData(path, device, transpose=transpose)
     input_size = dataset.gene_num
@@ -19,6 +36,7 @@ def train(path='', EPOCH=300, lr=0.001, batch=32,
     valDataLoader = DataLoader(dataset, batch_size=32)
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     # dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
+    dca = save_and_load_init_model(dca, name)
     optimizer = torch.optim.RMSprop(dca.parameters(), lr=lr)
     # loss_zinb = NBLoss()
     loss_zinb = ZINBLoss()
@@ -33,10 +51,10 @@ def train(path='', EPOCH=300, lr=0.001, batch=32,
             train_loss = 0
             dca.train()
             dataset.set_mode('train')
-            for data, size_factor in trainDataLoader:
+            for data, target, size_factor in trainDataLoader:
 
-                mean, disp, drop = dca(data)
-                loss = loss_zinb(data, mean, disp, drop)
+                mean, disp, drop = dca(data, size_factor)
+                loss = loss_zinb(target, mean, disp, drop)
                 # mean, disp = dca(data)
                 # loss = loss_zinb(data, mean, disp)
 
@@ -53,9 +71,9 @@ def train(path='', EPOCH=300, lr=0.001, batch=32,
             with torch.no_grad():
                 dca.eval()
                 dataset.set_mode('val')
-                for data, size_factor in valDataLoader:
-                    mean, disp, drop = dca(data)
-                    loss = loss_zinb(data, mean, disp, drop)
+                for data, target, size_factor in valDataLoader:
+                    mean, disp, drop = dca(data, size_factor)
+                    loss = loss_zinb(target, mean, disp, drop)
                     # mean, disp = dca(data)
                     # loss = loss_zinb(data, mean, disp)
 
@@ -67,7 +85,7 @@ def train(path='', EPOCH=300, lr=0.001, batch=32,
                 if avg_loss < best_val_loss:
                     best_val_loss = avg_loss
                     es_count = 0
-                    torch.save(dca.state_dict(), 'dca.pt')
+                    torch.save(dca.state_dict(), name+'.pt')
                 else:
                     es_count += 1
             if es_count >= early_stopping:
@@ -79,13 +97,21 @@ def train(path='', EPOCH=300, lr=0.001, batch=32,
 
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     #dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
-    dca.load_state_dict(torch.load('dca.pt'))
+    dca.load_state_dict(torch.load(name+'.pt'))
     dca.eval()
 
     dataset.set_mode('test')
     eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
-    for data, size_factor in eval_dataloader:
-        mean, disp, drop = dca(data)
+    # if name2:
+    #     dataset = GeneCountData(name2, device, transpose=transpose)
+    # else:
+    #     dataset = GeneCountData('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', device, transpose=transpose)
+    # input_size = dataset.gene_num
+
+    # dataset.set_mode('test')
+    # eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
+    for data, target, size_factor in eval_dataloader:
+        mean, disp, drop = dca(data, size_factor)
         #mean, disp = dca(data)
     adata = dataset.adata
     adata.X = mean.detach().numpy()
