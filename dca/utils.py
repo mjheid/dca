@@ -159,7 +159,7 @@ def plot_zeroinf(ad, title, mean_var_plot=False, opt_theta=True):
 
 def save_and_load_modelweights(model, name):
     if os.path.exists(os.path.abspath('.') + '/init_' + name + '.npy'):
-        model.set_weights(np.load('init_' + name + '.npy'), allow_pickle=True)
+        model.set_weights(np.load('init_' + name + '.npy', allow_pickle=True))
         return model
     else:
         np.save('init_' + name, model.get_weights())
