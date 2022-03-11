@@ -21,9 +21,10 @@ class GeneCountData(torch.utils.data.Dataset):
         adata = read_dataset(path,
                             transpose=transpose, # assume gene x cell by default
                             check_counts=check_count,
-                            test_split=test_split)
+                            test_split=False)
 
         adata = normalize(adata,
+                            filter_min_counts=True,    #TODO: set True whennot testing
                             size_factors=True,
                             logtrans_input=loginput,
                             normalize_input=norminput)

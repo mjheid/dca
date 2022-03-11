@@ -11,29 +11,31 @@ import os
 
 
 def train(path='', EPOCH=500, lr=0.001, batch=32,
-        transpose=True, reduce_lr=20, early_stopping=25,
-        name='dca', name2=None):
+        transpose=True, reduce_lr=10, early_stopping=15,
+        name='dca', name2=None, loginput=True, test_split=True,
+        norminput=True, batchsize=32):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Seed
-    seed = 42
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-    os.environ['PYTHONHASHSEED'] = '0'
+    # seed = 42
+    # torch.manual_seed(seed)
+    # torch.cuda.manual_seed(seed)
+    # torch.cuda.manual_seed_all(seed)
+    # np.random.seed(seed)
+    # random.seed(seed)
+    # torch.backends.cudnn.benchmark = False
+    # torch.backends.cudnn.deterministic = True
+    # os.environ['PYTHONHASHSEED'] = '0'
 
-    dataset = GeneCountData(path, device, transpose=transpose)
+    dataset = GeneCountData(path, device, transpose=transpose, test_split=test_split,
+                            loginput=loginput, norminput=norminput)
     input_size = dataset.gene_num
 
     dataset.set_mode('train')
-    trainDataLoader = DataLoader(dataset, batch_size=32, shuffle=True)
+    trainDataLoader = DataLoader(dataset, batch_size=batchsize, shuffle=True)
     dataset.set_mode('val')
-    valDataLoader = DataLoader(dataset, batch_size=32)
+    valDataLoader = DataLoader(dataset, batch_size=batchsize)
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     # dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     dca = save_and_load_init_model(dca, name)
@@ -45,12 +47,13 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     best_val_loss = float('inf')
     earlystopping = True
     es_count = 0
-
+    # dataset.set_mode('test')
+    # eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     for epoch in range(EPOCH):
         if  earlystopping:
             train_loss = 0
             dca.train()
-            dataset.set_mode('train')
+            dataset.set_mode('test')
             for data, target, size_factor in trainDataLoader:
 
                 mean, disp, drop = dca(data, size_factor)
