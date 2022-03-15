@@ -1,11 +1,8 @@
-from dca.mod_train import train
+from federated_dca.train import train
 
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import scanpy as sc
-import pandas as pd
-import scipy as sp
 import pandas as pd
 from sklearn.metrics import silhouette_score
 
@@ -18,7 +15,7 @@ sim_raw.obs['Group'] = anno['Group'].values
 sc.pp.filter_genes(sim_raw, min_counts=1)
 
 dca_zinb = train('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', name='2szinb',
-                name2='/home/kaies/csb/dca/data/sixgroupsimulation/twogroupsimulation_withoutDropout.csv')
+                name2='/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', ridge=0.005)
 dca_zinb.obs['Group'] = anno['Group'].values
 
 sim_true = sc.read('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_withoutDropout.csv', first_column_names=True).transpose()
@@ -86,7 +83,7 @@ sim_raw.obs['Group'] = anno['Group'].values
 sc.pp.filter_genes(sim_raw, min_counts=1)
 
 dca_zinb = train('/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_witDropout.csv', name='6szinb',
-                    name2='/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv')
+                    name2='/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_witDropout.csv', ridge=0.005)
 dca_zinb.obs['Group'] = anno['Group'].values
 
 sim_true = sc.read('/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv', first_column_names=True).transpose()

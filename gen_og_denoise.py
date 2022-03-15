@@ -18,7 +18,8 @@ sim_raw.obs['Group'] = anno['Group'].values
 sc.pp.filter_genes(sim_raw, min_counts=1)
 
 dca_zinb = dca('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv',
-                 ae_type='zinb-conddisp', transpose=True, copy=True, return_info=True, name='2szinb')
+                 ae_type='zinb-conddisp', transpose=True, copy=True, return_info=True, name='2szinb',
+                 adata2='/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_withoutDropout.csv')
 dca_zinb.obs['Group'] = anno['Group'].values
 
 sim_true = sc.read('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_withoutDropout.csv',
@@ -88,7 +89,8 @@ sim_raw.obs['Group'] = anno['Group'].values
 sc.pp.filter_genes(sim_raw, min_counts=1)
 
 dca_zinb = dca('/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_witDropout.csv',
-                 ae_type='zinb-conddisp', transpose=True, copy=True, name='6szinb')
+                 ae_type='zinb-conddisp', transpose=True, copy=True, name='6szinb',
+                 adata2='/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv')
 dca_zinb.obs['Group'] = anno['Group'].values
 
 sim_true = sc.read('/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv',
