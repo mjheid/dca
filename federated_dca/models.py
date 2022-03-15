@@ -18,7 +18,7 @@ class DispAct(torch.nn.Module):
 def init_weights(layer):
     if isinstance(layer, torch.nn.Linear):
         torch.nn.init.xavier_uniform_(layer.weight)
-        torch.nn.init.zeros_(layer.bias)
+        #torch.nn.init.zeros_(layer.bias)
 
 class AutoEncoder(torch.nn.Module):
     def __init__(self, input_size, encoder_size, bottleneck_size):

@@ -1,10 +1,10 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from dca.datasets import GeneCountData
-from dca.my_loss import ZINBLoss, NBLoss
-from dca.models import ZINBAutoEncoder, NBAutoEncoder
-from dca.utils2 import save_and_load_init_model
+from federated_dca.datasets import GeneCountData
+from federated_dca.my_loss import ZINBLoss, NBLoss
+from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
+from federated_dca.utils2 import save_and_load_init_model
 import random
 import numpy as np
 import os
@@ -18,15 +18,15 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Seed
-    # seed = 42
-    # torch.manual_seed(seed)
-    # torch.cuda.manual_seed(seed)
-    # torch.cuda.manual_seed_all(seed)
-    # np.random.seed(seed)
-    # random.seed(seed)
-    # torch.backends.cudnn.benchmark = False
-    # torch.backends.cudnn.deterministic = True
-    # os.environ['PYTHONHASHSEED'] = '0'
+    seed = 42
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    os.environ['PYTHONHASHSEED'] = '0'
 
     dataset = GeneCountData(path, device, transpose=transpose, test_split=test_split,
                             loginput=loginput, norminput=norminput)
@@ -112,7 +112,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     # input_size = dataset.gene_num
 
     # dataset.set_mode('test')
-    # eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
+    eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     for data, target, size_factor in eval_dataloader:
         mean, disp, drop = dca(data, size_factor)
         #mean, disp = dca(data)

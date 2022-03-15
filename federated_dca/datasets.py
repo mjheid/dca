@@ -55,7 +55,7 @@ class GeneCountData(torch.utils.data.Dataset):
         self.train = 0
         self.val = 1
         self.test = 2
-        self.mode = self.val
+        self.mode = self.test
     
     def set_mode(self, mode):
         if mode == 'train':

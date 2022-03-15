@@ -9,29 +9,29 @@ def save_and_load_init_model(model, mname):
             for name, params in model.named_parameters():
                 sh = params.shape
                 if name == 'encoder.0.weight':
-                    params.data = torch.from_numpy(saved_params[0].reshape((sh[0], sh[1])))
+                    params.data = torch.from_numpy(np.transpose(saved_params[0]))
                 elif name == 'encoder.0.bias':
                     params.data = torch.from_numpy(saved_params[1])
                 elif name == 'bottleneck.0.weight':
-                    params.data = torch.from_numpy(saved_params[6].reshape((sh[0], sh[1])))
+                    params.data = torch.from_numpy(np.transpose(saved_params[2]))
                 elif name == 'bottleneck.0.bias':
-                    params.data = torch.from_numpy(saved_params[7])
+                    params.data = torch.from_numpy(saved_params[3])
                 elif name == 'decoder.0.weight':
-                    params.data = torch.from_numpy(saved_params[12].reshape((sh[0], sh[1])))
+                    params.data = torch.from_numpy(np.transpose(saved_params[4]))
                 elif name == 'decoder.0.bias':
-                    params.data = torch.from_numpy(saved_params[13])
+                    params.data = torch.from_numpy(saved_params[5])
                 elif name == 'mean.0.weight':
-                    params.data = torch.from_numpy(saved_params[18].reshape((sh[0], sh[1])))
+                    params.data = torch.from_numpy(np.transpose(saved_params[6]))
                 elif name == 'mean.0.bias':
-                    params.data = torch.from_numpy(saved_params[19])
+                    params.data = torch.from_numpy(saved_params[7])
                 elif name == 'disp.0.weight':
-                    params.data = torch.from_numpy(saved_params[20].reshape((sh[0], sh[1])))
+                    params.data = torch.from_numpy(np.transpose(saved_params[8]))
                 elif name == 'disp.0.bias':
-                    params.data = torch.from_numpy(saved_params[21])
+                    params.data = torch.from_numpy(saved_params[9])
                 elif name == 'drop.0.weight':
-                    params.data = torch.from_numpy(saved_params[22].reshape((sh[0], sh[1])))
+                    params.data = torch.from_numpy(np.transpose(saved_params[10]))
                 elif name == 'drop.0.bias':
-                    params.data = torch.from_numpy(saved_params[23])
+                    params.data = torch.from_numpy(saved_params[11])
 
         return model
     else:
@@ -40,27 +40,27 @@ def save_and_load_init_model(model, mname):
         for name, params in model.named_parameters():
             sh = params.shape
             if name == 'encoder.0.weight':
-                params_to_save.append(params.detach().numpy().reshape((sh[1], sh[0])))
+                params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'encoder.0.bias':
                 params_to_save.append(params.detach().numpy())
             elif name == 'bottleneck.0.weight':
-                params_to_save.append(params.detach().numpy().reshape((sh[1], sh[0])))
+                params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'bottleneck.0.bias':
                params_to_save.append(params.detach().numpy())
             elif name == 'decoder.0.weight':
-                params_to_save.append(params.detach().numpy().reshape((sh[1], sh[0])))
+                params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'decoder.0.bias':
                 params_to_save.append(params.detach().numpy())
             elif name == 'mean.0.weight':
-                params_to_save.append(params.detach().numpy().reshape((sh[1], sh[0])))
+                params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'mean.0.bias':
                 params_to_save.append(params.detach().numpy())
             elif name == 'disp.0.weight':
-                params_to_save.append(params.detach().numpy().reshape((sh[1], sh[0])))
+                params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'disp.0.bias':
                 params_to_save.append(params.detach().numpy())
             elif name == 'drop.0.weight':
-                params_to_save.append(params.detach().numpy().reshape((sh[1], sh[0])))
+                params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'drop.0.bias':
                 params_to_save.append(params.detach().numpy())
         np.save('1e_' + mname, params_to_save)
