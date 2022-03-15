@@ -2,11 +2,10 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from federated_dca.datasets import GeneCountData
-from federated_dca.my_loss import ZINBLoss, NBLoss
+from federated_dca.loss import ZINBLoss, NBLoss
 from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
-from federated_dca.utils2 import save_and_load_init_model
+from federated_dca.utils import save_and_load_init_model
 import random
-import numpy as np
 import os
 
 
