@@ -13,7 +13,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
         transpose=True, reduce_lr=10, early_stopping=15,
         name='dca', name2=None, loginput=True, test_split=True,
         norminput=True, batchsize=32, ridge=0.0, seed=42,
-        save_and_load=False):
+        save_and_load=False, encoder_size=64, bottleneck_size=32):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -36,7 +36,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     trainDataLoader = DataLoader(dataset, batch_size=batchsize, shuffle=True)
     dataset.set_mode('val')
     valDataLoader = DataLoader(dataset, batch_size=batchsize)
-    dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
+    dca = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
     # dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     if save_and_load:
         dca = save_and_load_init_model(dca, name)
