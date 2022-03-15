@@ -12,12 +12,13 @@ import os
 def train(path='', EPOCH=500, lr=0.001, batch=32,
         transpose=True, reduce_lr=10, early_stopping=15,
         name='dca', name2=None, loginput=True, test_split=True,
-        norminput=True, batchsize=32):
+        norminput=True, batchsize=32, ridge=0.0, mask=False,
+        debug=False, seed=42, save_and_load=False):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Seed
-    seed = 42
+    seed = seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -37,10 +38,11 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     valDataLoader = DataLoader(dataset, batch_size=batchsize)
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     # dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
-    dca = save_and_load_init_model(dca, name)
+    if save_and_load:
+        dca = save_and_load_init_model(dca, name)
     optimizer = torch.optim.RMSprop(dca.parameters(), lr=lr)
     # loss_zinb = NBLoss()
-    loss_zinb = ZINBLoss()
+    loss_zinb = ZINBLoss(ridge_lambda=ridge, mask=mask, debug=debug)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr)
 
     best_val_loss = float('inf')
@@ -87,7 +89,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
                 if avg_loss < best_val_loss:
                     best_val_loss = avg_loss
                     es_count = 0
-                    torch.save(dca.state_dict(), name+'.pt')
+                    torch.save(dca.state_dict(), 'data/checkpoints/'+name+'.pt')
                 else:
                     es_count += 1
             if es_count >= early_stopping:
@@ -99,7 +101,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
 
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     #dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
-    dca.load_state_dict(torch.load(name+'.pt'))
+    dca.load_state_dict(torch.load('data/checkpoints/'+name+'.pt'))
     dca.eval()
 
     dataset.set_mode('test')

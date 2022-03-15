@@ -5,18 +5,14 @@ class NBLoss(torch.nn.Module):
     """
     point mass at zero representing excess zero values in data
     """
-    def __init__(self, mask=False, scale_factor=1.0, debug=False) -> None:
+    def __init__(self, mask=False, debug=False) -> None:
         super().__init__()
 
         self.eps = 1e-10
-        self.scale_factor = 1.0
         self.debug = debug
-        self.mask = False
+        self.mask = mask
 
     def forward(self, x, mean, theta, red_mean=True):
-        
-        mean = mean * self.scale_factor
-
         if self.mask:
             x = torch.nan_to_num(x, posinf=float('inf'), neginf=-float('inf'))
         
@@ -52,8 +48,6 @@ class ZINBLoss(NBLoss):
     
     def forward(self, x, mean, theta, pi, red_mean=True):
         nb_case = super().forward(x, mean, theta, red_mean=False) - torch.log(1.0-pi+self.eps)
-
-        mean = mean * self.scale_factor
 
         theta = torch.minimum(theta, torch.tensor([1e6]))
 

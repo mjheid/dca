@@ -2,8 +2,8 @@ import torch
 import numpy as np
 import os.path
 
-def save_and_load_init_model(model, mname):
-    if os.path.exists(os.path.abspath('.') + '/init_' + mname + '.npy'):
+def save_and_load_init_model(model, mname, base='data/checkpoints/'):
+    if os.path.exists(os.path.abspath('.') + base + '/init_' + mname + '.npy'):
         saved_params = np.load('init_' + mname + '.npy', allow_pickle=True)
         with torch.no_grad():
             for name, params in model.named_parameters():
@@ -63,5 +63,5 @@ def save_and_load_init_model(model, mname):
                 params_to_save.append(np.transpose(params.detach().numpy()))
             elif name == 'drop.0.bias':
                 params_to_save.append(params.detach().numpy())
-        np.save('1e_' + mname, params_to_save)
+        np.save(base + '1e_' + mname, params_to_save)
         return model
