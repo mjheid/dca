@@ -44,6 +44,7 @@ def dca(adata,
         check_counts=True,
         transpose=False,
         name='dca',
+        adata2=None,
         ):
     """Deep count autoencoder(DCA) API.
 
@@ -163,7 +164,7 @@ def dca(adata,
 
     # check for zero genes
     nonzero_genes, _ = sc.pp.filter_genes(adata.X, min_counts=1)
-    assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
+    #assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
 
     adata = normalize(adata,
                       filter_min_counts=False, # no filtering, keep cell and gene idxs same
@@ -202,6 +203,23 @@ def dca(adata,
     }
 
     hist = train(adata[adata.obs.dca_split == 'train'], net, **training_kwds)
+    if adata2 is not None:
+        true_adata = read_dataset(adata2,
+                         transpose=transpose,
+                         test_split=False,
+                         copy=copy,
+                         check_counts=check_counts)
+
+    #     # check for zero genes
+    #     nonzero_genes, _ = sc.pp.filter_genes(adata.X, min_counts=1)
+    #     #assert nonzero_genes.all(), 'Please remove all-zero genes before using DCA.'
+
+    #     adata = normalize(adata,
+    #                     filter_min_counts=False, # no filtering, keep cell and gene idxs same
+    #                     size_factors=normalize_per_cell,
+    #                     normalize_input=scale,
+    #                     logtrans_input=log1p)
+
     res = net.predict(adata, mode, return_info, copy)
     adata = res if copy else adata
 

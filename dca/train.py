@@ -37,7 +37,7 @@ def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=No
           epochs=300, reduce_lr=10, output_subset=None, use_raw_as_output=True,
           early_stop=15, batch_size=32, clip_grad=5., save_weights=False,
           validation_split=0.1, tensorboard=False, verbose=True, threads=None,
-          name='dca', **kwds):
+          name=None, **kwds):
 
     tf.compat.v1.keras.backend.set_session(
         tf.compat.v1.Session(
@@ -48,7 +48,8 @@ def train(adata, network, output_dir=None, optimizer='RMSprop', learning_rate=No
         )
     )
     model = network.model
-    model = save_and_load_modelweights(model, name)
+    if name is not None:
+        model = save_and_load_modelweights(model, name)
     loss = network.loss
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
