@@ -12,8 +12,8 @@ import os
 def train(path='', EPOCH=500, lr=0.001, batch=32,
         transpose=True, reduce_lr=10, early_stopping=15,
         name='dca', name2=None, loginput=True, test_split=True,
-        norminput=True, batchsize=32, ridge=0.0, mask=False,
-        debug=False, seed=42, save_and_load=False):
+        norminput=True, batchsize=32, ridge=0.0, seed=42,
+        save_and_load=False):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -42,7 +42,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
         dca = save_and_load_init_model(dca, name)
     optimizer = torch.optim.RMSprop(dca.parameters(), lr=lr)
     # loss_zinb = NBLoss()
-    loss_zinb = ZINBLoss(ridge_lambda=ridge, mask=mask, debug=debug)
+    loss_zinb = ZINBLoss(ridge_lambda=ridge)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr)
 
     best_val_loss = float('inf')
