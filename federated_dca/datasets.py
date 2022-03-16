@@ -13,7 +13,7 @@ class GeneCountData(torch.utils.data.Dataset):
 
     def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
                 transpose=True, check_count=False, test_split=True, loginput=True,
-                 norminput=True):
+                 norminput=True, filter_min_counts=True, first_col_names=True):
         """
         Args:
             
@@ -21,10 +21,11 @@ class GeneCountData(torch.utils.data.Dataset):
         adata = read_dataset(path,
                             transpose=transpose, # assume gene x cell by default
                             check_counts=check_count,
-                            test_split=False)
+                            test_split=False,
+                            first_col_names=first_col_names)
 
         adata = normalize(adata,
-                            filter_min_counts=True,    #TODO: set True whennot testing
+                            filter_min_counts=filter_min_counts,    #TODO: set True whennot testing
                             size_factors=True,
                             logtrans_input=loginput,
                             normalize_input=norminput)
@@ -90,13 +91,13 @@ class GeneCountData(torch.utils.data.Dataset):
 
         return data, target, size_factors
 
-def read_dataset(adata, transpose=False, test_split=False, copy=False, check_counts=True):
+def read_dataset(adata, transpose=False, test_split=False, copy=False, check_counts=True, first_col_names=True):
 
     if isinstance(adata, sc.AnnData):
         if copy:
             adata = adata.copy()
     elif isinstance(adata, str):
-        adata = sc.read(adata, first_column_names=True)
+        adata = sc.read(adata, first_column_names=first_col_names)
     else:
         raise NotImplementedError
 

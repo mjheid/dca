@@ -104,15 +104,13 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     dca.load_state_dict(torch.load('data/checkpoints/'+name+'.pt'))
     dca.eval()
 
-    dataset.set_mode('test')
-    eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     # if name2:
     #     dataset = GeneCountData(name2, device, transpose=transpose)
     # else:
     #     dataset = GeneCountData('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', device, transpose=transpose)
     # input_size = dataset.gene_num
 
-    # dataset.set_mode('test')
+    dataset.set_mode('test')
     eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     for data, target, size_factor in eval_dataloader:
         mean, disp, drop = dca(data, size_factor)
