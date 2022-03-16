@@ -99,7 +99,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     
     print(f'Best val loss: {best_val_loss}')
 
-    dca = ZINBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
+    dca = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
     #dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
     dca.load_state_dict(torch.load('data/checkpoints/'+name+'.pt'))
     dca.eval()
