@@ -34,6 +34,20 @@ cdict = {0: '1Ery', 1: '2Ery', 2: '3Ery', 3: '4Ery', 4: '5Ery',
 import torch
 from federated_dca.models import ZINBAutoEncoder
 from federated_dca.datasets import GeneCountData
+import random
+import os
+
+# Seed
+seed = 42
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+np.random.seed(seed)
+random.seed(seed)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+os.environ['PYTHONHASHSEED'] = '0'
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 dataset = GeneCountData('/home/kaies/csb/dca/data/paul/paul_original.csv', transpose=True, first_col_names=False)
@@ -42,10 +56,11 @@ eval_dataloader = torch.utils.data.DataLoader(dataset, batch_size=dataset.__len_
 
 dca = ZINBAutoEncoder(dataset.gene_num, 64, 2).to(device)
 dca.load_state_dict(torch.load('data/checkpoints/paul.pt'))
+dca.eval()
 
 for data, target, size_factor in eval_dataloader:
         x = dca.encoder(data)
-        x = dca.bottleneck(x)
+        x = list(dca.bottleneck.modules())[1](x)
 
 bndata = x.detach().numpy()
 anno['bnd.1'] = bndata[:,0]

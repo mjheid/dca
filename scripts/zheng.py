@@ -3,6 +3,7 @@ import scanpy as sc
 import matplotlib.pyplot as plt
 
 anno = pd.read_csv('/home/kaies/csb/dca/data/zheng/68k_pbmc_barcodes_annotation.tsv', sep='\t', header=0)
+og_anno = anno.copy()
 anno['celltype'] = anno['celltype'].replace(r'^CD8\+.*$', 0, regex=True)
 anno['celltype'] = anno['celltype'].replace(r'^CD4\+.*$', 1, regex=True)
 anno['celltype'] = anno['celltype'].replace(r'^CD14\+ Monocyte.*$', 2, regex=True)
@@ -38,7 +39,7 @@ dataset.set_mode('test')
 eval_dataloader = torch.utils.data.DataLoader(dataset, batch_size=dataset.__len__())
 for data, target, size_factor in eval_dataloader:
         x = dca.encoder(data)
-        x = dca.bottleneck(x)
+        x = list(dca.bottleneck.modules())[1](x)
 
 bndata = x.detach().numpy()
 anno['bnd.1'] = bndata[:,0]
