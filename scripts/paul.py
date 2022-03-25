@@ -32,7 +32,7 @@ cdict = {0: '1Ery', 1: '2Ery', 2: '3Ery', 3: '4Ery', 4: '5Ery',
         18: '19Lymph'}
 
 import torch
-from federated_dca.models import ZINBAutoEncoder
+from federated_dca.models import NBAutoEncoder, ZINBAutoEncoder
 from federated_dca.datasets import GeneCountData
 import random
 import os
@@ -55,7 +55,8 @@ dataset.set_mode('test')
 eval_dataloader = torch.utils.data.DataLoader(dataset, batch_size=dataset.__len__())
 
 dca = ZINBAutoEncoder(dataset.gene_num, 64, 2).to(device)
-dca.load_state_dict(torch.load('data/checkpoints/paul.pt'))
+dca = NBAutoEncoder(dataset.gene_num, 16, 2)
+dca.load_state_dict(torch.load('data/checkpoints/paul_nb.pt'))
 dca.eval()
 
 for data, target, size_factor in eval_dataloader:
@@ -72,6 +73,26 @@ for g in groups:
     ganno = anno[anno['celltypes']==g]
     plt.scatter(ganno['bnd.1'], ganno['bnd.2'], label=cdict[g])#, c=ganno['celltypes'], label=cdict[g], s=1)
 ax.legend()
+fig.tight_layout()
+plt.show()
+plt.close()
+
+adata_ae = sc.datasets.paul15()
+adata_ae.obsm['bnd'] = bndata
+genes = adata_ae.var_names.to_native_types()
+genes[genes == 'Sfpi1'] = 'Pu.1'
+adata_ae.var_names = pd.Index(genes)
+sc.pp.log1p(adata_ae)
+sc.pp.pca(adata_ae)
+sc.pp.neighbors(adata_ae, n_neighbors=20, use_rep='bnd')
+sc.tl.dpt(adata_ae, n_branchings=1)
+#sc.pl.diffmap(adata_ae, color='dpt_pseudotime', title='Diffusion Pseudotime of GMP-MEP branches', color_map='viridis', use_raw=False)
+
+fig, ax = plt.subplots(figsize=(10,10))
+
+anno['dpt'] = adata_ae.obs['dpt_pseudotime'].values
+
+plt.scatter(anno['bnd.1'], anno['bnd.2'], c=anno['dpt'])
 fig.tight_layout()
 plt.show()
 plt.close()

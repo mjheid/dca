@@ -27,12 +27,13 @@ plt.show()
 plt.close()
 
 import torch
-from federated_dca.models import ZINBAutoEncoder
+from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
 from federated_dca.datasets import GeneCountData
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 dca = ZINBAutoEncoder(1000, 64, 2).to(device)
-dca.load_state_dict(torch.load('data/checkpoints/zheng.pt'))
+dca = NBAutoEncoder(1000, 16, 2)
+dca.load_state_dict(torch.load('data/checkpoints/zheng_nb.pt'))
 
 dataset = GeneCountData('/home/kaies/csb/dca/data/zheng/zheng_original.csv', transpose=True, first_col_names=False)
 dataset.set_mode('test')

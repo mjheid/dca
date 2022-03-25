@@ -1,4 +1,4 @@
-from federated_dca.train import train
+from federated_dca.train import train, train_nb
 from federated_dca.loss import ZINBLoss
 import torch
 
@@ -29,6 +29,6 @@ import pandas as pd
 # anno['clusters'] = anno['clusters'].replace(r'^Dendritic.*$', 'CD8+', regex=True)
 # adata =  sc.read('/home/kaies/csb/dca/data/zheng/zheng_original.csv', first_column_names=True).transpose()
 
-# dca_zinb = train('/home/kaies/csb/dca/data/zheng/zheng_original.csv', name='zheng', bottleneck_size=2)
-dca_zinb = train('/home/kaies/csb/dca/data/paul/paul_original.csv', name='paul', bottleneck_size=2)
+dca_zinb = train_nb('/home/kaies/csb/dca/data/paul/paul_original.csv', name='paul_nb', bottleneck_size=2, encoder_size=16, EPOCH=1000)
+#dca_zinb = train('/home/kaies/csb/dca/data/stoeckius/stoeckius_original.csv', name='stoeckius')
 #dca_zinb.obs['Group'] = anno['clusters'].values
