@@ -145,7 +145,7 @@ class trainInstince():
 
             train_loss += loss.item()
         
-        avg_loss = train_loss / len(tself.rainDataLoader)
+        avg_loss = train_loss / len(self.trainDataLoader)
         update(f'{id}: Epoch: {epoch}, Avg train loss: {avg_loss}')
 
         val_loss = 0
