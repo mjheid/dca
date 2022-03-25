@@ -21,7 +21,7 @@ class GeneCountData(torch.utils.data.Dataset):
         adata = read_dataset(path,
                             transpose=transpose, # assume gene x cell by default
                             check_counts=check_count,
-                            test_split=False,
+                            test_split=True,
                             first_col_names=first_col_names)
 
         adata = normalize(adata,
@@ -164,7 +164,7 @@ def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=
         rownames, colnames = colnames, rownames
 
     pd.DataFrame(matrix, index=rownames, columns=colnames).to_csv(filename,
-                                                                  sep='\t',
+                                                                  sep=',',
                                                                   index=(rownames is not None),
                                                                   header=(colnames is not None),
                                                                   float_format='%.6f')
