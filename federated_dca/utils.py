@@ -80,7 +80,7 @@ class trainInstince():
         self.config = params
         self.epoch = params['model_parameters']['epoch']
         self.lr = params['model_parameters']['lr']
-        self.batch = params['batch']
+        self.batch = params['model_parameters']['batch']
         self.encoder_size = params['model_parameters']['encoder_size']
         self.bottleneck_size = params['model_parameters']['bottleneck_size']
         self.ridge = params['model_parameters']['ridge']

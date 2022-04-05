@@ -1,9 +1,8 @@
 fc_dca:
     local_dataset:
-        data: data/test.csv
+        data: /mnt/input/test.csv
         task: denoising
         target_value: gene counts
-        sep: ,
         loginput: True
         norminput: True
         transpose: True

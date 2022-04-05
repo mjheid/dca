@@ -1,6 +1,6 @@
 from FeatureCloud.app.engine.app import AppState, app_state, Role
 from federated_dca.utils import load_params, trainInstince, average_model_params
-import yaml
+import bios
 
 @app_state('initial', Role.BOTH)
 class InitialState(AppState):
@@ -10,14 +10,14 @@ class InitialState(AppState):
 
     def run(self):
         if self.is_coordinator:
-            self.config = yaml.safe_load('config.yml')['fc_dca']
+            self.config = bios.read('/app/config.yml')['fc_dca']
             train_instince = trainInstince(self.config)
             self.update('Send initial Model to Clients')
             self.broadcast_data(train_instince.model.state_dict())
             self.store('train_instince', train_instince)
             return 'train'
         else:
-            self.config = yaml.safe_load('config.yml')['fc_dca']
+            self.config = bios.read('/app/config.yml')['fc_dca']
             train_instince = trainInstince(self.config)
             init_model_state = self.await_data().decode()
             self.update(f'{self.id}: received initial Model state')
