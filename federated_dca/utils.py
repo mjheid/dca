@@ -77,21 +77,22 @@ def load_params(path):
 
 class trainInstince():
     def __init__(self, params) -> None:
-        self.epoch = params['epoch']
-        self.lr = params['lr']
+        self.config = params
+        self.epoch = params['model_parameters']['epoch']
+        self.lr = params['model_parameters']['lr']
         self.batch = params['batch']
-        self.encoder_size = params['encoder_size']
-        self.bottleneck_size = params['bottleneck_size']
-        self.ridge = params['ridge']
+        self.encoder_size = params['model_parameters']['encoder_size']
+        self.bottleneck_size = params['model_parameters']['bottleneck_size']
+        self.ridge = params['model_parameters']['ridge']
         self.reduce_lr = params['reduce_lr']
-        self.early_stopping = params['early_stopping']
-        self.name = params['name']
-        self.dataset_path = params['dataset_path']
-        self.loginput = params['loginput']
-        self.norminput = params['norminput']
-        self.transpose = params['transpose']
-        self.seed = params['seed']
-        self.param_factor = params['param_factor']
+        self.early_stopping = params['model_parameters']['early_stopping']
+        self.name = params['model_parameters']['name']
+        self.dataset_path = params['local_dataset']['data']
+        self.loginput = params['local_dataset']['loginput']
+        self.norminput = params['local_dataset']['norminput']
+        self.transpose = params['local_dataset']['transpose']
+        self.seed = params['model_parameters']['seed']
+        self.param_factor = params['model_parameters']['param_factor']
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.dataset = GeneCountData(self.dataset_path, self.device, transpose=self.transpose,
                         loginput=self.loginput, norminput=self.norminput)
@@ -100,7 +101,7 @@ class trainInstince():
         self.trainDataLoader = DataLoader(self.dataset, batch_size=self.batchsize, shuffle=True)
         self.dataset.set_mode('val')
         self.valDataLoader = DataLoader(self.dataset, batch_size=self.batchsize)
-        self.model_type = params['model']
+        self.model_type = params['model_parameters']['model']
         if params['model'] == 'zinb':
             self.model = ZINBAutoEncoder(input_size=self.input_size, encoder_size=self.encoder_size,
                         bottleneck_size=self.bottleneck_size).to(self.device)

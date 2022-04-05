@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build . --tag featurecloud.ai/app
+docker build . --tag featurecloud.ai/dca

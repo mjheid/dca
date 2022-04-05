@@ -5,6 +5,7 @@ numpy
 bios
 pydot
 pyyaml
+featurecloud
 torch
 scanpy
 pandas
