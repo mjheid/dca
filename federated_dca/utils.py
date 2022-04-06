@@ -6,7 +6,7 @@ from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
 from federated_dca.loss import ZINBLoss, NBLoss
 import torch
 from torch.utils.data import DataLoader
-from federated_dca.datasets import GeneCountData
+from federated_dca.datasets import GeneCountData, write_text_matrix
 
 def save_and_load_init_model(model, mname, base='data/checkpoints/'):
     if os.path.exists(os.path.abspath('.') + base + '/init_' + mname + '.npy'):
@@ -78,13 +78,18 @@ def load_params(path):
 class trainInstince():
     def __init__(self, params) -> None:
         self.config = params
+        self.train_loss = []
+        self.val_loss = []
+        self.denoise = params['result']['denoise']
+        self.result = params['result']['data']
         self.epoch = params['model_parameters']['epoch']
+        self.epoch_count = 0
         self.lr = params['model_parameters']['lr']
         self.batch = params['model_parameters']['batch']
         self.encoder_size = params['model_parameters']['encoder_size']
         self.bottleneck_size = params['model_parameters']['bottleneck_size']
         self.ridge = params['model_parameters']['ridge']
-        self.reduce_lr = params['reduce_lr']
+        self.reduce_lr = params['model_parameters']['reduce_lr']
         self.early_stopping = params['model_parameters']['early_stopping']
         self.name = params['model_parameters']['name']
         self.dataset_path = params['local_dataset']['data']
@@ -94,15 +99,15 @@ class trainInstince():
         self.seed = params['model_parameters']['seed']
         self.param_factor = params['model_parameters']['param_factor']
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.dataset = GeneCountData(self.dataset_path, self.device, transpose=self.transpose,
+        self.dataset = GeneCountData('/mnt/input/'+self.dataset_path, self.device, transpose=self.transpose,
                         loginput=self.loginput, norminput=self.norminput)
         self.input_size = self.dataset.gene_num
         self.dataset.set_mode('train')
-        self.trainDataLoader = DataLoader(self.dataset, batch_size=self.batchsize, shuffle=True)
+        self.trainDataLoader = DataLoader(self.dataset, batch_size=self.batch, shuffle=True)
         self.dataset.set_mode('val')
-        self.valDataLoader = DataLoader(self.dataset, batch_size=self.batchsize)
-        self.model_type = params['model_parameters']['model']
-        if params['model'] == 'zinb':
+        self.valDataLoader = DataLoader(self.dataset, batch_size=self.batch)
+        self.model_type = params['model_parameters']['model_type']
+        if self.model_type == 'zinb':
             self.model = ZINBAutoEncoder(input_size=self.input_size, encoder_size=self.encoder_size,
                         bottleneck_size=self.bottleneck_size).to(self.device)
             self.loss = ZINBLoss(ridge_lambda=self.ridge)
@@ -116,7 +121,7 @@ class trainInstince():
         self.best_val_loss = float('inf')
 
     def train(self, update, log, id):
-        epoch = self.epoch
+        epoch = self.epoch_count
         seed = self.seed
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
@@ -125,7 +130,7 @@ class trainInstince():
         random.seed(seed)
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-        os.environ['PYTHONHASHSEED'] = '0'
+        os.environ['PYTHONHASHSEED'] = f'{seed}'
 
         self.model.train()
         self.dataset.set_mode('train')
@@ -147,14 +152,15 @@ class trainInstince():
             train_loss += loss.item()
         
         avg_loss = train_loss / len(self.trainDataLoader)
-        update(f'{id}: Epoch: {epoch}, Avg train loss: {avg_loss}')
+        self.train_loss.append(avg_loss)
+        log(f'Epoch: {epoch}, Avg train loss: '+"%.6f"%avg_loss)
 
         val_loss = 0
 
         with torch.no_grad():
             self.model.eval()
             self.dataset.set_mode('test')
-            for data, target, size_factor in self.valData_loader:
+            for data, target, size_factor in self.valDataLoader:
                 if self.model_type == 'zinb':
                     mean, disp, drop = self.model(data, size_factor)
                     loss = self.loss(target, mean, disp, drop)
@@ -163,21 +169,22 @@ class trainInstince():
                     loss = self.loss(target, mean, disp)
                 val_loss += loss.item()
             avg_loss = val_loss / len(self.valDataLoader)
-            update(f'{id}: Epoch: {epoch}, Avg val loss: {avg_loss}')
+            self.val_loss.append(avg_loss)
+            log(f'Epoch: {epoch}, Avg val loss: '+"%.6f"%avg_loss)
             self.scheduler.step(avg_loss)
 
             if avg_loss < self.best_val_loss:
-                torch.save(self.model.state_dict(), self.name + '.pt')
+                torch.save(self.model.state_dict(), '/mnt/output/'+self.name+'.pt')
         
-        self.epoch -= 1
-        if epoch <= 0:
+        self.epoch_count += 1
+        if self.epoch - self.epoch_count <= 0:
             self.finished_training = True
     
     def get_weights(self):
         model = self.model
         weights_list = []
         for name, params in model.named_parameters():
-            weights_list.append(params)
+            weights_list.append(params.data)
         return weights_list
     
     def set_weights(self, weights):
@@ -187,6 +194,30 @@ class trainInstince():
             for name, params in model.named_parameters():
                 params.data = params.data + self.param_factor * (weights[index] - params.data)
                 index += 1
+    
+    def finish(self):
+        np.save('/mnt/output/train_loss', self.train_loss)
+        np.save('/mnt/output/val_loss', self.val_loss)
+        if self.denoise:
+            self.model.load_state_dict(torch.load('/mnt/output/'+self.name+'.pt'))
+            self.model.eval()
+            self.dataset.set_mode('test')
+            eval_dataloader = DataLoader(self.dataset, batch_size=self.dataset.__len__())
+            for data, target, size_factor in eval_dataloader:
+                if self.model_type == 'zinb':
+                    mean, disp, drop = self.model(data, size_factor)
+                    loss = self.loss(target, mean, disp, drop)
+                else:
+                    mean, disp = self.model(data, size_factor)
+                    loss = self.loss(target, mean, disp)
+            adata = self.dataset.adata.copy()
+            adata.X = mean.detach().numpy()
+            colnames = adata.var_names.values
+            rownames = adata.obs_names.values
+            write_text_matrix(adata.X,
+                              '/mnt/output/'+self.result,
+                              rownames=rownames, colnames=colnames, transpose=True)
+
 
 
 def average_model_params(model_params):
@@ -194,7 +225,7 @@ def average_model_params(model_params):
     for i in list(range(len(model_params[0]))):
         weight = 0
         for model in model_params:
-            if weight == 0:
+            if type(weight) is int:
                 weight = model[i]
             else:
                 weight += model[i]

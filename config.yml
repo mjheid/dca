@@ -1,6 +1,6 @@
 fc_dca:
     local_dataset:
-        data: /mnt/input/test.csv
+        data: test.csv
         task: denoising
         target_value: gene counts
         loginput: True
@@ -21,3 +21,4 @@ fc_dca:
         model_type: zinb #or nb
     result: 
         data: mean.csv
+        denoise: True
