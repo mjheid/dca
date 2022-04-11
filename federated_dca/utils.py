@@ -193,10 +193,10 @@ class trainInstince():
     def set_weights(self, weights):
         model = self.model
         index = 0
-        # with torch.no_grad():
-        #     for name, params in model.named_parameters():
-        #         params.data = params.data + self.param_factor * (weights[index] - params.data)
-        #         index += 1
+        with torch.no_grad():
+            for name, params in model.named_parameters():
+                params.data = params.data + self.param_factor * (weights[index] - params.data)
+                index += 1
     
     def finish(self):
         np.save('/mnt/output/train_loss', self.train_loss)
