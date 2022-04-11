@@ -32,9 +32,9 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
                             loginput=loginput, norminput=norminput)
     input_size = dataset.gene_num
 
-    dataset.set_mode('train')
+    dataset.set_mode(dataset.train)
     trainDataLoader = DataLoader(dataset, batch_size=batchsize, shuffle=True)
-    dataset.set_mode('val')
+    dataset.set_mode(dataset.val)
     valDataLoader = DataLoader(dataset, batch_size=batchsize)
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
     # dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
@@ -54,7 +54,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
         if  earlystopping:
             train_loss = 0
             dca.train()
-            dataset.set_mode('test')
+            dataset.set_mode(dataset.train)
             for data, target, size_factor in trainDataLoader:
 
                 mean, disp, drop = dca(data, size_factor)
@@ -74,7 +74,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
             val_loss = 0
             with torch.no_grad():
                 dca.eval()
-                dataset.set_mode('val')
+                dataset.set_mode(dataset.val)
                 for data, target, size_factor in valDataLoader:
                     mean, disp, drop = dca(data, size_factor)
                     loss = loss_zinb(target, mean, disp, drop)
@@ -110,7 +110,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     #     dataset = GeneCountData('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', device, transpose=transpose)
     # input_size = dataset.gene_num
 
-    dataset.set_mode('test')
+    dataset.set_mode(dataset.test)
     eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     for data, target, size_factor in eval_dataloader:
         mean, disp, drop = dca(data, size_factor)
@@ -144,9 +144,9 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
                             loginput=loginput, norminput=norminput)
     input_size = dataset.gene_num
 
-    dataset.set_mode('train')
+    dataset.set_mode(dataset.train)
     trainDataLoader = DataLoader(dataset, batch_size=batchsize, shuffle=True)
-    dataset.set_mode('val')
+    dataset.set_mode(dataset.val)
     valDataLoader = DataLoader(dataset, batch_size=batchsize)
     dca = NBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
     if save_and_load:
@@ -162,7 +162,7 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
         if  earlystopping:
             train_loss = 0
             dca.train()
-            dataset.set_mode('test')
+            dataset.set_mode(dataset.train)
             for data, target, size_factor in trainDataLoader:
 
                 mean, disp = dca(data, size_factor)
@@ -182,7 +182,7 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
             val_loss = 0
             with torch.no_grad():
                 dca.eval()
-                dataset.set_mode('val')
+                dataset.set_mode(dataset.val)
                 for data, target, size_factor in valDataLoader:
                     mean, disp= dca(data, size_factor)
                     loss = loss_zinb(target, mean, disp)
@@ -215,7 +215,7 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
     #     dataset = GeneCountData('/home/kaies/csb/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', device, transpose=transpose)
     # input_size = dataset.gene_num
 
-    dataset.set_mode('test')
+    dataset.set_mode(dataset.test)
     eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     for data, target, size_factor in eval_dataloader:
         mean, disp = dca(data, size_factor)

@@ -6,15 +6,16 @@ fc_dca:
         loginput: True
         norminput: True
         transpose: True
+        test_split: True
     model_parameters:
-        epoch: 500
+        epoch: 250
         lr: 0.001
         batch: 32
         encoder_size: 64
         bottleneck_size: 32
         ridge: 0.0
-        reduce_lr: 20
-        early_stopping: 25
+        reduce_lr: 10
+        early_stopping: 15
         name: dca
         seed: 42
         param_factor: 1

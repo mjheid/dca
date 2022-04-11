@@ -1,3 +1,4 @@
+from re import X
 import torch
 import numpy as np
 import os.path
@@ -91,16 +92,18 @@ class trainInstince():
         self.ridge = params['model_parameters']['ridge']
         self.reduce_lr = params['model_parameters']['reduce_lr']
         self.early_stopping = params['model_parameters']['early_stopping']
+        self.es_count = 0
         self.name = params['model_parameters']['name']
         self.dataset_path = params['local_dataset']['data']
         self.loginput = params['local_dataset']['loginput']
         self.norminput = params['local_dataset']['norminput']
         self.transpose = params['local_dataset']['transpose']
+        self.test_split = params['local_dataset']['test_split']
         self.seed = params['model_parameters']['seed']
         self.param_factor = params['model_parameters']['param_factor']
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.dataset = GeneCountData('/mnt/input/'+self.dataset_path, self.device, transpose=self.transpose,
-                        loginput=self.loginput, norminput=self.norminput)
+                        loginput=self.loginput, norminput=self.norminput, test_split=self.test_split)
         self.input_size = self.dataset.gene_num
         self.dataset.set_mode('train')
         self.trainDataLoader = DataLoader(self.dataset, batch_size=self.batch, shuffle=True)
@@ -119,9 +122,6 @@ class trainInstince():
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', patience=self.reduce_lr)
         self.finished_training = False
         self.best_val_loss = float('inf')
-
-    def train(self, update, log, id):
-        epoch = self.epoch_count
         seed = self.seed
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
@@ -132,50 +132,53 @@ class trainInstince():
         torch.backends.cudnn.deterministic = True
         os.environ['PYTHONHASHSEED'] = f'{seed}'
 
-        self.model.train()
-        self.dataset.set_mode('train')
-
+    def train(self, update, log, id):
+        epoch = self.epoch_count
         train_loss = 0
-
+        self.model.train()
+        self.dataset.set_mode(self.dataset.train)
         for data, target, size_factor in self.trainDataLoader:
+
             if self.model_type == 'zinb':
                 mean, disp, drop = self.model(data, size_factor)
                 loss = self.loss(target, mean, disp, drop)
             else:
-                mean, disp = self.model(data, size_factor)
-                loss = self.loss(target, mean, disp)
-            
+                mean, disp = self.model(data)
+                loss = self.loss(data, mean, disp)
+
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
             train_loss += loss.item()
-        
+
         avg_loss = train_loss / len(self.trainDataLoader)
-        self.train_loss.append(avg_loss)
         log(f'Epoch: {epoch}, Avg train loss: '+"%.6f"%avg_loss)
 
         val_loss = 0
-
         with torch.no_grad():
             self.model.eval()
-            self.dataset.set_mode('test')
+            self.dataset.set_mode(self.dataset.val)
             for data, target, size_factor in self.valDataLoader:
                 if self.model_type == 'zinb':
                     mean, disp, drop = self.model(data, size_factor)
                     loss = self.loss(target, mean, disp, drop)
                 else:
-                    mean, disp = self.model(data, size_factor)
-                    loss = self.loss(target, mean, disp)
-                val_loss += loss.item()
-            avg_loss = val_loss / len(self.valDataLoader)
-            self.val_loss.append(avg_loss)
-            log(f'Epoch: {epoch}, Avg val loss: '+"%.6f"%avg_loss)
-            self.scheduler.step(avg_loss)
+                    mean, disp = self.model(data)
+                    loss = self.loss(data, mean, disp)
 
+                val_loss += loss.item()
+            
+            avg_loss = val_loss / len(self.valDataLoader)
+            self.scheduler.step(avg_loss)
+            log(f'Epoch: {epoch}, Avg val loss: '+"%.6f"%avg_loss)
             if avg_loss < self.best_val_loss:
+                self.best_val_loss = avg_loss
                 torch.save(self.model.state_dict(), '/mnt/output/'+self.name+'.pt')
-        
+                self.es_count = 0
+            else:
+                self.es_count += 1
+
         self.epoch_count += 1
         if self.epoch - self.epoch_count <= 0:
             self.finished_training = True
@@ -190,10 +193,10 @@ class trainInstince():
     def set_weights(self, weights):
         model = self.model
         index = 0
-        with torch.no_grad():
-            for name, params in model.named_parameters():
-                params.data = params.data + self.param_factor * (weights[index] - params.data)
-                index += 1
+        # with torch.no_grad():
+        #     for name, params in model.named_parameters():
+        #         params.data = params.data + self.param_factor * (weights[index] - params.data)
+        #         index += 1
     
     def finish(self):
         np.save('/mnt/output/train_loss', self.train_loss)
@@ -201,7 +204,7 @@ class trainInstince():
         if self.denoise:
             self.model.load_state_dict(torch.load('/mnt/output/'+self.name+'.pt'))
             self.model.eval()
-            self.dataset.set_mode('test')
+            self.dataset.set_mode(self.dataset.test)
             eval_dataloader = DataLoader(self.dataset, batch_size=self.dataset.__len__())
             for data, target, size_factor in eval_dataloader:
                 if self.model_type == 'zinb':
