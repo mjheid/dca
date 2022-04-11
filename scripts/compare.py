@@ -15,7 +15,7 @@ sim_raw.obs['Group'] = anno['Group'].values
 sc.pp.filter_genes(sim_raw, min_counts=1)
 
 
-dca_zinb = pd.read_csv('mean.csv', index_col=0).transpose()
+dca_zinb = pd.read_csv('/home/kaies/Downloads/results_test_2_client_0_fc_featurecloudaidca_511938585/mean.csv', index_col=0).transpose()
 raw_copy = sim_raw.copy()
 dca_zinb = sc.AnnData(dca_zinb.values)
 sc.pp.filter_genes(dca_zinb, min_counts=1)
