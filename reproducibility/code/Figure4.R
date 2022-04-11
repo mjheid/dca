@@ -1,10 +1,10 @@
 # Load matrices ####
-withoutDropout <- read.csv("../data/francesconi/francesconi_withoutDropout.csv", row.names = 1)
-withDropout <- read.csv("../data/francesconi/francesconi_withDropout.csv", row.names = 1)
-dca <- read.csv("../data/francesconi/francesconi_dca.csv", row.names = 1)
-magic <- read.csv("../data/francesconi/francesconi_magic.csv", row.names = 1)
-scimpute  <- read.csv("../data/francesconi/francesconi_scimpute.csv", row.names = 1)
-saver <- read.csv("../data/francesconi/francesconi_saver.csv", row.names = 1)
+withoutDropout <- read.csv("/home/kaies/csb/dca/data/francesconi/francesconi_withoutDropout.csv", row.names = 1)
+withDropout <- read.csv("/home/kaies/csb/dca/data/francesconi/francesconi_withDropout.csv", row.names = 1)
+dca <- read.csv("/home/kaies/csb/dca/data/checkpoints/francesconi_mean.csv", row.names = 1)
+magic <- read.csv("/home/kaies/csb/dca/data/francesconi/francesconi_magic.csv", row.names = 1)
+scimpute  <- read.csv("/home/kaies/csb/dca/data/francesconi/francesconi_scimpute.csv", row.names = 1)
+saver <- read.csv("/home/kaies/csb/dca/data/francesconi/francesconi_saver.csv", row.names = 1)
 
 # Generate heatmaps ####
 cors <- apply(withoutDropout,1,function(x) cor.test(method = "pearson",x,1:ncol(withoutDropout)))
@@ -15,7 +15,7 @@ genes.down <- names(head(sort(pvals[coefs < 0]), 100))
 
 genHeatmap <- function(matr){
   library(gplots)
-  load("../data/BlueYellowColormaps_V1.RData")
+  load("/home/kaies/csb/dca/data/BlueYellowColormaps_V1.RData")
   genes <- c(genes.up, genes.down )
   rowOrd <- order(unlist(lapply(cors[genes], function(x) x$estimate)))
   matr <- matr[match(genes, rownames(withoutDropout)),]

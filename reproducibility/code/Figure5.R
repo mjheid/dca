@@ -5,11 +5,11 @@ library(ggplot2)
 library(beeswarm)
 
 # Load DESeq2 results ####
-load("../data/chu/chu_deseq2_results.RData")
+load("/home/kaies/csb/dca/data/chu/chu_deseq2_results.RData")
 
 # Generate plots foldchange plots ####
 # Panels A and B
-pdf(useDingbats = F, "../figs/Fig5_A_B.pdf", width = 8, height = 4.5)
+pdf(useDingbats = F, "/home/kaies/csb/dca/figs/Fig5_A_B.pdf", width = 8, height = 4.5)
 par(mfrow = c(1, 2))
 diffs <- list(abs(res_original$log2FoldChange - res_bulk$log2FoldChange),
                 abs(res_dca$log2FoldChange - res_bulk$log2FoldChange))
@@ -25,14 +25,14 @@ legend("bottomright", paste("Rho:", signif(cor(res_dca$log2FoldChange, res_bulk$
 dev.off()
 
 # Load expression tables ####
-bulk <- data.matrix(read.csv("../data/chu/chu_bulk.csv", row.names = 1))
+bulk <- data.matrix(read.csv("/home/kaies/csb/dca/data/chu/chu_bulk.csv", row.names = 1))
 treat_bulk <- colnames(bulk)
 treat_bulk <- unlist(lapply(treat_bulk, function(x) strsplit(x, "_", fixed = T)[[1]][1]))
 ok <- which(treat_bulk %in% c("H1", "DEC"))
 treat_bulk <- treat_bulk[ok]
 bulk <- bulk[, ok]
 
-counts <- read.csv("../data/chu/chu_original.csv", row.names = 1)
+counts <- read.csv("/home/kaies/csb/dca/data/chu/chu_original.csv", row.names = 1)
 counts <- round(counts)
 treat <- unlist(lapply(colnames(counts), function(x) strsplit(x, "_", fixed = T)[[1]][1]))
 farben <- c("black", "yellow", "blue", "purple", "green", "red", "grey")
@@ -40,13 +40,13 @@ names(farben) <- c("H1", "H9", "EC", "NPC", "DEC", "HFF", "TB")
 ok <- which(treat %in% c("H1", "DEC"))
 counts <- counts[, ok]
 treat <- treat[ok]
-dca <- data.matrix(read.csv("../data/chu/chu_dca.csv", row.names = 1))
+dca <- data.matrix(read.csv("/home/kaies/csb/dca/data/checkpoints/chu_mean.csv", row.names = 1))
 original <- data.matrix(counts[rownames(dca),])
 bulk <- data.matrix(bulk[rownames(dca),])
 
 # Generate single gene plots ####
 # Panels C, D and E
-pdf(useDingbats = F, "../figs/Fig5_C_D_E.pdf", width = 9, height = 3.5)
+pdf(useDingbats = F, "/home/kaies/csb/dca/figs/Fig5_C_D_E.pdf", width = 9, height = 3.5)
 par(mfrow = c(1, 3))
 gene <- "LEFTY1"
 boxplot(split(original[gene,], treat)[c("H1", "DEC")], outline = FALSE, main = "Original", ylim = c(0, 5000), ylab = gene)
@@ -58,8 +58,8 @@ dev.off()
 
 # Generate boxplot ####
 # Panel F
-load("../data/chu/HundredTimes_20cells.RData")
-load("../data/chu/chu_deseq2_results.RData")
+load("/home/kaies/csb/dca/data/chu/HundredTimes_20cells.RData")
+load("/home/kaies/csb/dca/data/chu/chu_deseq2_results.RData")
 
 res_bulk <- res_bulk[rownames(res_original), ]
 res_bulk$log2FoldChange <- res_bulk$log2FoldChange*(-1)
@@ -68,7 +68,7 @@ tmp <- lapply(1:5, function(y) unlist(lapply(1:100, function(x) cor(res_bulk$log
 colors <- list(c(192, 81, 158), c(73, 93, 115), c(152, 201, 125), c(117, 90, 36))
 colors <- c("white", unlist(lapply(colors, function(x) rgb((x/sum(x))[1], (x/sum(x))[2], (x/sum(x))[3]))))
 
-pdf(useDingbats = F, "../figs/Fig5_F.pdf", height = 4, width = 3.5)
+pdf(useDingbats = F, "/home/kaies/csb/dca/figs/Fig5_F.pdf", height = 4, width = 3.5)
 boxplot(tmp, names = c("original", "DCA", "SAVER", "MAGIC", "scImpute"), ylab = "Pearson correlation", las = 2, col = colors, outline = F)
 dev.off()
 
