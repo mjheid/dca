@@ -18,7 +18,7 @@ class InitialState(AppState):
             self.store('train_instince', train_instince)
             return 'train'
         else:
-            self.config = bios.read('/app/config.yml')['fc_dca']
+            self.config = bios.read('/mnt/input/config.yml')['fc_dca']
             train_instince = trainInstince(self.config)
             init_model_state = self.await_data()
             self.log(f'Received initial Model state')
