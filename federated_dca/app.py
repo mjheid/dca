@@ -13,8 +13,7 @@ class InitialState(AppState):
             self.config = bios.read('/mnt/input/config.yml')['fc_dca']
             train_instince = trainInstince(self.config)
             self.log('Send initial Model to Clients')
-            self.broadcast_data(train_instince.model.state_dict())
-            init_model_state = self.await_data()
+            self.broadcast_data(train_instince.model.state_dict(), send_to_self=False)
             self.store('train_instince', train_instince)
             return 'train'
         else:
