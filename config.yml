@@ -1,12 +1,12 @@
 fc_dca:
     local_dataset:
         data: test.csv
-        task: denoising
-        target_value: gene counts
         loginput: True
         norminput: True
         transpose: True
         test_split: True
+        filter_min_counts: True
+        size_factor: True
     model_parameters:
         epoch: 250
         lr: 0.001

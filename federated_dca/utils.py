@@ -99,11 +99,14 @@ class trainInstince():
         self.norminput = params['local_dataset']['norminput']
         self.transpose = params['local_dataset']['transpose']
         self.test_split = params['local_dataset']['test_split']
+        self.filter_min_counts = params['local_dataset']['filter_min_counts']
+        self.size_factor = params['local_dataset']['size_factor']
         self.seed = params['model_parameters']['seed']
         self.param_factor = params['model_parameters']['param_factor']
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.dataset = GeneCountData('/mnt/input/'+self.dataset_path, self.device, transpose=self.transpose,
-                        loginput=self.loginput, norminput=self.norminput, test_split=self.test_split)
+                        loginput=self.loginput, norminput=self.norminput, test_split=self.test_split,
+                        filter_min_counts=self.filter_min_counts, size_factor=self.size_factor)
         self.input_size = self.dataset.gene_num
         self.dataset.set_mode('train')
         self.trainDataLoader = DataLoader(self.dataset, batch_size=self.batch, shuffle=True)

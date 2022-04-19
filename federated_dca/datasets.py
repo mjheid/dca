@@ -13,7 +13,7 @@ class GeneCountData(torch.utils.data.Dataset):
 
     def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
                 transpose=True, check_count=False, test_split=True, loginput=True,
-                 norminput=True, filter_min_counts=True, first_col_names=True):
+                 norminput=True, filter_min_counts=True, first_col_names=True, size_factor=True):
         """
         Args:
             
@@ -26,7 +26,7 @@ class GeneCountData(torch.utils.data.Dataset):
 
         adata = normalize(adata,
                             filter_min_counts=filter_min_counts,    #TODO: set True whennot testing
-                            size_factors=True,
+                            size_factors=size_factor,
                             logtrans_input=loginput,
                             normalize_input=norminput)
         
@@ -168,5 +168,3 @@ def write_text_matrix(matrix, filename, rownames=None, colnames=None, transpose=
                                                                   index=(rownames is not None),
                                                                   header=(colnames is not None),
                                                                   float_format='%.6f')
-# def read_pickle(inputfile):
-#     return pickle.load(open(inputfile, "rb"))
