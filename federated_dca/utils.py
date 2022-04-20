@@ -240,3 +240,13 @@ def average_model_params(model_params):
         params.append(weight)
         
     return params
+
+def aggregate(global_model, client_models, client_lens):
+    total = sum(client_lens)
+    n = len(client_models)
+    global_dict = global_model.state_dict()
+    for key in global_dict.keys():
+        global_dict[key] = torch.stack([client_models[i].state_dict()[key].float()*(n*client_lens[i]/total) for i in range(len(client_models))], 0).mean(0)
+    global_model.load_state_dict(global_dict)
+    for model in client_models: #TODO: partial change
+        model.load_state_dict(global_model.state_dict())
