@@ -2,6 +2,7 @@ from pyexpat import model
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import torch.multiprocessing as mp
 from federated_dca.datasets import GeneCountData
 from federated_dca.loss import ZINBLoss, NBLoss
 from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
@@ -225,34 +226,15 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
     
     return adata
 
-def train(args):
+def train(inputfiles='/data/input/', num_clients=1, transpose=False, loginput=False, norminput=False,
+            test_split=0.1, filter_min_counts=False, size_factor=False, batch_size=32,
+            encoder_size=64, bottleneck_size=32, ridge=0.0, name='dca',
+            lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500,
+            model='zinb', path_global='/data/global/data.csv', param_factor=1, seed=42):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    inputfiles = args.input
-    num_clients = args.clients
-    transpose = args.transpose
-    loginput = args.loginput
-    norminput = args.norminput
-    test_split = args.test_split
-    filter_min_counts = args.filter_min_counts
-    size_factor = args.size_factor
-    batch_size = args.batchsize
-    encoder_size = args.encoder_size
-    bottleneck_size = args.bottleneck_size
-    ridge = args.ridge
-    name = args.name
-    lr = args.lr
-    reduce_lr = args.reduce_lr
-    early_stopping = args.early_stopping
-    EPOCH = args.epoch
-    model = args.model
-    path_global = args.path_global
-    path = os.listdir(path)
-
-
     # Seed
-    seed = args.seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -293,9 +275,34 @@ def train(args):
     schedulers = [torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr) for optimizer in optimizers]
 
     best_val_loss = [float('inf') for _ in list(range(num_clients+1))]
-    earlystopping = [True for _ in list(range(num_clients+1))]
+    earlystopping = [mp.Event().set() for _ in list(range(num_clients+1))]
     es_count = [0 for _ in list(range(num_clients+1))]
     global_model.eval()
+
+    mp.set_start_method('spawn')
+    [model.share_memory() for model in client_models]
+    processes = []
+    events = []
+    aggregate_flag = mp.Event()
+    for rank in range(num_clients+1):
+        if rank <= num_clients:
+            e = mp.Event()
+            events.append(e)
+            p = mp.Process(target=train_client, args=(client_models[rank],
+                            trainDataLoaders[rank], loss, optimizers[rank],
+                            valDataLoaders[rank], e, aggregate_flag, es_count[client],
+                            earlystopping))
+            p.start()
+            processes.append(p)
+        else:
+            p = mp.Process(target=global_agg, args=(client_models,
+                            global_model, loss, globalDataLoader,
+                            name, client_lens, param_factor, aggregate_flag, events,
+                            es_count[rank], earlystopping))
+            p.start()
+            processes.append(p)
+    for p in processes:
+        p.join()
 
     for epoch in range(EPOCH):
         if  all(earlystopping):
@@ -350,7 +357,7 @@ def train(args):
             pass
         with torch.no_grad():
             test_loss = 0
-            aggregate(global_model, client_models, client_lens)
+            aggregate(global_model, client_models, client_lens, param_factor)
             for data, target, size_factor in globalDataLoader:
                 if model == 'zinb':
                     mean, disp, drop = global_model(data, size_factor)

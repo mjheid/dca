@@ -101,3 +101,49 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
+
+    inputfiles = os.listdir(args.input)
+    num_clients = args.clients
+    transpose = args.transpose
+    loginput = args.loginput
+    norminput = args.norminput
+    test_split = args.test_split
+    filter_min_counts = args.filter_min_counts
+    size_factor = args.size_factor
+    batch_size = args.batchsize
+    encoder_size = args.encoder_size
+    bottleneck_size = args.bottleneck_size
+    ridge = args.ridge
+    name = args.name
+    lr = args.lr
+    reduce_lr = args.reduce_lr
+    early_stopping = args.early_stopping
+    EPOCH = args.epoch
+    model = args.model
+    path_global = args.path_global
+    param_factor = args.param_factor
+    seed = args.seed
+
+    from federated_dca.train import train
+
+    train(inputfiles=inputfiles,
+                num_clients=num_clients,
+                transpose=transpose,
+                loginput=loginput,
+                norminput=norminput,
+                test_split=test_split,
+                filter_min_counts=filter_min_counts,
+                size_factor=size_factor,
+                batch_size=batch_size,
+                encoder_size=encoder_size,
+                bottleneck_size=bottleneck_size,
+                ridge=ridge,
+                name=name,
+                lr=lr,
+                reduce_lr=reduce_lr,
+                early_stopping=early_stopping,
+                EPOCH=EPOCH,
+                model=model,
+                path_global=path_global,
+                param_factor=param_factor,
+                seed=seed)
