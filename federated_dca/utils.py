@@ -1,3 +1,4 @@
+from calendar import EPOCH
 from re import X
 import torch
 import numpy as np
@@ -253,3 +254,130 @@ def aggregate(global_model, client_models, client_lens, param_factor):
         for key in global_dict.keys():
             model_dict[key] = model_dict[key] + param_factor * (global_dict[key] - model_dict[key])
         model.load_state_dict(model_dict)
+
+def train_client(model,
+                trainDataLoader, loss, optimizer,
+                valDataLoader, e, aggregate_flag, es_count,
+                earlystopping_own, earlystopping_prev, earlystopping_cond, 
+                early_stopping, EPOCH, dataset, name, client, scheduler, modeltype):
+
+    best_val_loss = float('inf')
+    for epoch in range(EPOCH):
+        if  earlystopping_cond.is_set():
+            train_loss = 0
+            model.train()
+            dataset.set_mode(dataset.train)
+            print(f'Epoch: {epoch}')
+            for data, target, size_factor in trainDataLoader:
+                if modeltype == 'zinb':
+                    mean, disp, drop = model(data, size_factor)
+                    l = loss(target, mean, disp, drop)
+                else:
+                    mean, disp = model(data)
+                    l = loss(data, mean, disp)
+
+                optimizer.zero_grad()
+                l.backward()
+                optimizer.step()
+
+                train_loss += l.item()
+
+            avg_loss = train_loss / len(trainDataLoader)
+            print(f'Client: {client}, Avg train loss: {avg_loss}')
+
+            val_loss = 0
+            with torch.no_grad():
+                model.eval()
+                dataset.set_mode(dataset.val)
+                for data, target, size_factor in valDataLoader:
+                    if modeltype == 'zinb':
+                        mean, disp, drop = model(data, size_factor)
+                        l = loss(target, mean, disp, drop)
+                    else:
+                        mean, disp = model(data)
+                        l = loss(data, mean, disp)
+
+                    val_loss += l.item()
+                
+                avg_loss = val_loss / len(valDataLoader)
+                scheduler.step(avg_loss)
+                print(f'Client: {client}, Avg val loss: {avg_loss}')
+                if avg_loss < best_val_loss:
+                    best_val_loss = avg_loss
+                    es_count = 0
+                    earlystopping_own.set()
+                    torch.save(model.state_dict(), 'data/checkpoints/'+name+f'_{client}.pt')
+                else:
+                    es_count += 1
+                if client == 0 and es_count >= early_stopping:
+                    earlystopping_own.clear()
+                elif es_count >= early_stopping and not earlystopping_prev.is_set():
+                    earlystopping_own.clear()
+                e.set()
+                aggregate_flag.wait()
+                e.clear()
+        else:
+            e.set()
+            earlystopping_own.clear()
+    print(f'Client: {client}, Best val loss: {best_val_loss}')
+
+
+def global_agg(client_models,
+                global_model, loss, globalDataLoader,
+                name, client_lens, param_factor, aggregate_flag, events,
+                es_count, earlystopping_own, earlystopping_prev, early_stopping, EPOCH, modeltype):
+
+    best_val_loss = float('inf')
+    avg_loss = float('inf')
+    for epoch in range(EPOCH):
+        if earlystopping_own.is_set() and earlystopping_prev.is_set():
+            for event in events:
+                event.wait()
+            with torch.no_grad():
+                test_loss = 0
+                aggregate(global_model, client_models, client_lens, param_factor)
+                aggregate_flag.set()
+                aggregate_flag.clear()
+                for data, target, size_factor in globalDataLoader:
+                    if modeltype == 'zinb':
+                        mean, disp, drop = global_model(data, size_factor)
+                        l = loss(target, mean, disp, drop)
+                    else:
+                        mean, disp = global_model(data)
+                        l = loss(data, mean, disp)
+
+                    test_loss += l.item()
+                avg_loss = test_loss / len(globalDataLoader)
+                print(f'Global avg test loss: {avg_loss}')
+                if avg_loss < best_val_loss:
+                    best_val_loss = avg_loss
+                    es_count = 0
+                    earlystopping_own.set()
+                    torch.save(global_model.state_dict(), 'data/checkpoints/'+name+f'_global.pt')
+                else:
+                    es_count += 1
+                if es_count >= early_stopping and not earlystopping_prev.is_set():
+                    earlystopping_own.clear()
+        else:
+            aggregate_flag.set()
+            earlystopping_own.clear()
+    print(f'Global, Best val loss: {best_val_loss}')
+
+
+def denoise(model, name, path, dataset, modeltype, result, outputdir):
+    model.load_state_dict(torch.load(path+name+'.pt'))
+    model.eval()
+    dataset.set_mode(dataset.test)
+    eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
+    for data, target, size_factor in eval_dataloader:
+        if modeltype == 'zinb':
+            mean, disp, drop = model(data, size_factor)
+        else:
+            mean, disp = model(data, size_factor)
+    adata = dataset.adata.copy()
+    adata.X = mean.detach().numpy()
+    colnames = adata.var_names.values
+    rownames = adata.obs_names.values
+    write_text_matrix(adata.X,
+                        outputdir+ result,
+                        rownames=rownames, colnames=colnames, transpose=True)

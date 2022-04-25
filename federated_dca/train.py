@@ -6,7 +6,7 @@ import torch.multiprocessing as mp
 from federated_dca.datasets import GeneCountData
 from federated_dca.loss import ZINBLoss, NBLoss
 from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
-from federated_dca.utils import save_and_load_init_model, aggregate
+from federated_dca.utils import save_and_load_init_model, aggregate, train_client, global_agg
 import random
 import os
 
@@ -226,13 +226,17 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
     
     return adata
 
-def train(inputfiles='/data/input/', num_clients=1, transpose=False, loginput=False, norminput=False,
+
+def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False, loginput=False, norminput=False,
             test_split=0.1, filter_min_counts=False, size_factor=False, batch_size=32,
             encoder_size=64, bottleneck_size=32, ridge=0.0, name='dca',
             lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500,
-            model='zinb', path_global='/data/global/data.csv', param_factor=1, seed=42):
+            modeltype='zinb', path_global='/data/global/data.csv', param_factor=1, seed=42):
 
+    #mp.set_start_method('spawn')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    directory = os.path.abspath(os.getcwd()) + inputfiles
+    inputfiles = [os.path.abspath(os.path.join(directory, p)) for p in os.listdir(directory)]
 
     # Seed
     torch.manual_seed(seed)
@@ -247,18 +251,18 @@ def train(inputfiles='/data/input/', num_clients=1, transpose=False, loginput=Fa
     datasets = [GeneCountData(path, device, transpose=transpose,
                         loginput=loginput, norminput=norminput, test_split=test_split,
                         filter_min_counts=filter_min_counts, size_factor=size_factor) for path in inputfiles]
-    global_dataset = GeneCountData(path_global, device, transpose=transpose,
+    global_dataset = GeneCountData(os.path.abspath(os.getcwd())+path_global, device, transpose=transpose,
                         loginput=loginput, norminput=norminput, test_split=test_split,
                         filter_min_counts=filter_min_counts, size_factor=size_factor)
     input_size = datasets[0].gene_num
 
     [dataset.set_mode(dataset.train) for dataset in datasets]
     trainDataLoaders = [DataLoader(dataset, batch_size=batch_size, shuffle=True) for dataset in datasets]
-    client_lens = [len(trainDataLoader.__len__()) for trainDataLoader in trainDataLoaders]
+    client_lens = [trainDataLoader.__len__() for trainDataLoader in trainDataLoaders]
     [dataset.set_mode(dataset.val) for dataset in datasets]
     valDataLoaders = [DataLoader(dataset, batch_size=batch_size) for dataset in datasets]
     globalDataLoader = DataLoader(global_dataset, batch_size=batch_size)
-    if model == 'zinb':
+    if modeltype == 'zinb':
         global_model = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
         client_models = [ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
                         for _ in list(range(num_clients))]
@@ -275,107 +279,34 @@ def train(inputfiles='/data/input/', num_clients=1, transpose=False, loginput=Fa
     schedulers = [torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr) for optimizer in optimizers]
 
     best_val_loss = [float('inf') for _ in list(range(num_clients+1))]
-    earlystopping = [mp.Event().set() for _ in list(range(num_clients+1))]
+    earlystopping = [mp.Event() for _ in list(range(num_clients+1))]
+    [e.set() for e in earlystopping]
     es_count = [0 for _ in list(range(num_clients+1))]
     global_model.eval()
 
-    mp.set_start_method('spawn')
     [model.share_memory() for model in client_models]
     processes = []
     events = []
     aggregate_flag = mp.Event()
     for rank in range(num_clients+1):
-        if rank <= num_clients:
+        if rank < num_clients:
             e = mp.Event()
             events.append(e)
             p = mp.Process(target=train_client, args=(client_models[rank],
                             trainDataLoaders[rank], loss, optimizers[rank],
-                            valDataLoaders[rank], e, aggregate_flag, es_count[client],
-                            earlystopping))
+                            valDataLoaders[rank], e, aggregate_flag, es_count[rank],
+                            earlystopping[rank], earlystopping[rank-1], earlystopping[-1], early_stopping, EPOCH, datasets[rank], name, rank, 
+                            schedulers[rank], modeltype))
             p.start()
             processes.append(p)
         else:
             p = mp.Process(target=global_agg, args=(client_models,
                             global_model, loss, globalDataLoader,
                             name, client_lens, param_factor, aggregate_flag, events,
-                            es_count[rank], earlystopping))
+                            es_count[rank], earlystopping[-1], earlystopping[rank-1], early_stopping, EPOCH, modeltype))
             p.start()
             processes.append(p)
     for p in processes:
         p.join()
 
-    for epoch in range(EPOCH):
-        if  all(earlystopping):
-            train_loss = 0
-            [model.train() for model in client_models]
-            [dataset.set_mode(dataset.train) for dataset in datasets]
-            print(f'Epoch: {epoch}')
-            for client in list(range(num_clients)):
-                for data, target, size_factor in trainDataLoaders[client]:
-                    if name == 'zinb':
-                        mean, disp, drop = client_models[client](data, size_factor)
-                        l = loss(target, mean, disp, drop)
-                    else:
-                        mean, disp = client_models[client](data)
-                        loss = loss(data, mean, disp)
-
-                    optimizers[client].zero_grad()
-                    loss.backward()
-                    optimizers[client].step()
-
-                    train_loss += l.item()
-
-                avg_loss = train_loss / len(trainDataLoaders[client])
-                print(f'Client: {client}, Avg train loss: {avg_loss}')
-
-            val_loss = 0
-            with torch.no_grad():
-                [model.eval() for model in client_models]
-                [dataset.set_mode(dataset.val) for dataset in datasets]
-                for client in list(range(num_clients)):
-                    for data, target, size_factor in valDataLoaders[client]:
-                        if model == 'zinb':
-                            mean, disp, drop = client_models[client](data, size_factor)
-                            l = loss(target, mean, disp, drop)
-                        else:
-                            mean, disp = client_models[client](data)
-                            l = loss(data, mean, disp)
-
-                        val_loss += l.item()
-                    
-                    avg_loss = val_loss / len(valDataLoaders[client])
-                    schedulers[client].step(avg_loss)
-                    print(f'Client: {client}, Avg val loss: {avg_loss}')
-                    if avg_loss < best_val_loss[client]:
-                        best_val_loss[client] = avg_loss
-                        es_count[client] = 0
-                        torch.save(client_models[client].state_dict(), 'data/checkpoints/'+name+f'_{client}.pt')
-                    else:
-                        es_count[client] += 1
-                    earlystopping[client] = not es_count[client] >= early_stopping
-        else:
-            pass
-        with torch.no_grad():
-            test_loss = 0
-            aggregate(global_model, client_models, client_lens, param_factor)
-            for data, target, size_factor in globalDataLoader:
-                if model == 'zinb':
-                    mean, disp, drop = global_model(data, size_factor)
-                    l = loss(target, mean, disp, drop)
-                else:
-                    mean, disp = global_model(data)
-                    l = loss(data, mean, disp)
-
-                test_loss += l.item()
-            avg_loss = test_loss / len(globalDataLoader)
-            print(f'Global avg test loss: {avg_loss}')
-            if avg_loss < best_val_loss[-1]:
-                best_val_loss[-1] = avg_loss
-                es_count[-1] = 0
-                torch.save(global_model.state_dict(), 'data/checkpoints/'+name+f'_global.pt')
-            else:
-                es_count[client] += 1
-            earlystopping[-1] = not es_count[-1] >= early_stopping
-    
-    print(f'Best val loss: {best_val_loss}')
     

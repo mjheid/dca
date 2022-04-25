@@ -102,7 +102,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    inputfiles = os.listdir(args.input)
+    inputfiles = args.input
     num_clients = args.clients
     transpose = args.transpose
     loginput = args.loginput
@@ -124,9 +124,9 @@ if __name__ == '__main__':
     param_factor = args.param_factor
     seed = args.seed
 
-    from federated_dca.train import train
+    from federated_dca.train import train_with_clients
 
-    train(inputfiles=inputfiles,
+    train_with_clients(inputfiles=inputfiles,
                 num_clients=num_clients,
                 transpose=transpose,
                 loginput=loginput,
@@ -143,7 +143,7 @@ if __name__ == '__main__':
                 reduce_lr=reduce_lr,
                 early_stopping=early_stopping,
                 EPOCH=EPOCH,
-                model=model,
+                modeltype=model,
                 path_global=path_global,
                 param_factor=param_factor,
                 seed=seed)
