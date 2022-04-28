@@ -1,12 +1,11 @@
-from pyexpat import model
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from federated_dca.datasets import GeneCountData
+from federated_dca.datasets import GeneCountData, threadedGeneCountData
 from federated_dca.loss import ZINBLoss, NBLoss
 from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
-from federated_dca.utils import save_and_load_init_model, aggregate, train_client, global_agg
+from federated_dca.utils import save_and_load_init_model, train_client, global_agg, sort_paths
 import random
 import os
 
@@ -231,12 +230,14 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             test_split=0.1, filter_min_counts=False, size_factor=False, batch_size=32,
             encoder_size=64, bottleneck_size=32, ridge=0.0, name='dca',
             lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500,
-            modeltype='zinb', path_global='/data/global/data.csv', param_factor=1, seed=42):
+            modeltype='zinb', path_global='/data/global/', param_factor=1, seed=42):
 
     #mp.set_start_method('spawn')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    directory = os.path.abspath(os.getcwd()) + inputfiles
-    inputfiles = [os.path.abspath(os.path.join(directory, p)) for p in os.listdir(directory)]
+    directory = os.path.abspath(os.getcwd())# + inputfiles
+    #inputfiles = [os.path.abspath(os.path.join(directory, p)) for p in os.listdir(directory)]
+    inputfiles = sort_paths(directory+inputfiles)
+    global_input = sort_paths(directory+path_global, client=False)
 
     # Seed
     torch.manual_seed(seed)
@@ -248,10 +249,10 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     torch.backends.cudnn.deterministic = True
     os.environ['PYTHONHASHSEED'] = f'{seed}'
 
-    datasets = [GeneCountData(path, device, transpose=transpose,
+    datasets = [threadedGeneCountData(path, device, transpose=transpose,
                         loginput=loginput, norminput=norminput, test_split=test_split,
                         filter_min_counts=filter_min_counts, size_factor=size_factor) for path in inputfiles]
-    global_dataset = GeneCountData(os.path.abspath(os.getcwd())+path_global, device, transpose=transpose,
+    global_dataset = threadedGeneCountData(global_input, device, transpose=transpose,
                         loginput=loginput, norminput=norminput, test_split=test_split,
                         filter_min_counts=filter_min_counts, size_factor=size_factor)
     input_size = datasets[0].gene_num

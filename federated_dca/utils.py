@@ -1,7 +1,6 @@
-from calendar import EPOCH
-from re import X
 import torch
 import numpy as np
+import pandas as pd
 import os.path
 import random
 from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
@@ -9,6 +8,7 @@ from federated_dca.loss import ZINBLoss, NBLoss
 import torch
 from torch.utils.data import DataLoader
 from federated_dca.datasets import GeneCountData, write_text_matrix
+import glob
 
 def save_and_load_init_model(model, mname, base='data/checkpoints/'):
     if os.path.exists(os.path.abspath('.') + base + '/init_' + mname + '.npy'):
@@ -74,8 +74,6 @@ def save_and_load_init_model(model, mname, base='data/checkpoints/'):
         np.save(base + '1e_' + mname, params_to_save)
         return model
 
-def load_params(path):
-    pass
 
 class trainInstince():
     def __init__(self, params) -> None:
@@ -224,7 +222,6 @@ class trainInstince():
             write_text_matrix(adata.X,
                               '/mnt/output/'+self.result,
                               rownames=rownames, colnames=colnames, transpose=True)
-
 
 
 def average_model_params(model_params):
@@ -381,3 +378,55 @@ def denoise(model, name, path, dataset, modeltype, result, outputdir):
     write_text_matrix(adata.X,
                         outputdir+ result,
                         rownames=rownames, colnames=colnames, transpose=True)
+
+
+def sort_paths(paths, client=True, ptrn_data='data', ptrn_norm_data='norm'):
+    if not client:
+        data_path = glob.glob(paths+f'*{ptrn_data}*')
+        norm_data_path = glob.glob(paths+f'*{ptrn_norm_data}*')
+        return [data_path[0], norm_data_path[0]]
+    else:
+        ordered_path_list = []
+        for i in range(int(len(glob.glob(paths+'*.csv'))/2)):
+            i +=1
+            data_path = glob.glob(paths+f'*{ptrn_data}*{i}*')
+            norm_data_path = glob.glob(paths+f'*{ptrn_norm_data}*{i}*')
+            ordered_path_list.append([data_path[0], norm_data_path[0]])
+        return ordered_path_list
+
+
+def gen_iid_client_data(path, num_clients, name='', ptrn_data='data', ptrn_norm_data='norm', outputpath='data/input/', idx='Group'):
+    data = []
+    norm = []
+    num_classes = int(len(glob.glob(path+f'/*{ptrn_data}*')))
+    for i in range(num_classes):
+        i += 1
+        data.append(glob.glob(path+f'/*{ptrn_data}*{i}*')[0])
+        norm.append(glob.glob(path+f'/*{ptrn_norm_data}*{i}*')[0])
+    sorted_data_splits = []
+    for i in range(len(data)):
+        group_true = pd.read_csv(data[i]).set_index(idx)
+        group_norm = pd.read_csv(norm[i]).set_index(idx)
+        split_len = int(group_norm.shape[0] / num_clients)
+        index = 0
+        clients_norm = []
+        clients_true = []
+        for i in range(num_clients):
+            if i < num_clients-1:
+                split_true = pd.DataFrame(group_true[index:(i+1)*split_len])
+                split_norm = pd.DataFrame(group_norm[index:(i+1)*split_len])
+            else:
+                split_true = pd.DataFrame(group_true[index:])
+                split_norm = pd.DataFrame(group_norm[index:])
+            clients_norm.append(split_true)
+            clients_true.append(split_norm)
+        sorted_data_splits.append([clients_true, clients_norm])
+    for i in range(num_clients):
+        client_norm_df = pd.DataFrame()
+        client_true_df = pd.DataFrame()
+        for j in range(num_classes):
+            client_true_df = pd.concat([client_true_df, sorted_data_splits[j][0][i]])
+            client_norm_df = pd.concat([client_norm_df, sorted_data_splits[j][1][i]])
+        client_norm_df.to_csv(outputpath+'norm'+name+'_'+str(i+1)+'.csv')
+        client_true_df.to_csv(outputpath+'data'+name+'_'+str(i+1)+'.csv')
+        
