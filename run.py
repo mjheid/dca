@@ -4,14 +4,14 @@ from federated_dca.train import train
 def parse_args():
     parser = argparse.ArgumentParser(description='Autoencoder')
 
-    parser.add_argument('input', type=str, default='/data/input/',help='Input is raw count data in TSV/CSV '
+    parser.add_argument('-input', type=str, default='/data/input/',help='Input is raw count data in TSV/CSV '
                         'or H5AD (anndata) format. '
                         'Row/col names are mandatory. Note that TSV/CSV files must be in '
                         'gene x cell layout where rows are genes and cols are cells (scRNA-seq '
                         'convention).'
                         'Use the -t/--transpose option if your count matrix in cell x gene layout. '
                         'H5AD files must be in cell x gene format (stats and scanpy convention).')
-    parser.add_argument('clients', type=int, default=2, help='')
+    parser.add_argument('-clients', type=int, default=2, help='')
     parser.add_argument('-pg', '--path_global', type=str, default='/data/global/')
     parser.add_argument('--name', type=str, default='test')
     parser.add_argument('--seed', type=str, default=42)
