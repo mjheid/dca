@@ -111,9 +111,10 @@ class threadedGeneCountData(GeneCountData):
                             size_factors=size_factor,
                             logtrans_input=loginput,
                             normalize_input=norminput)
+        self.sf = pd.read_csv(path[2])
 
         self.data = torch.from_numpy(np.array(self.adata_raw.X)).to(device)
-        self.size_factors = torch.from_numpy(np.array(self.adata_raw.obs.size_factors)).to(device)
+        self.size_factors = torch.from_numpy(np.array(self.sf['0'].values)).to(device)
         self.target = torch.from_numpy(np.array(self.adata_true.X)).to(device)
         self.gene_num = self.data.shape[1]
 
@@ -123,14 +124,15 @@ class threadedGeneCountData(GeneCountData):
             spl.iloc[test_idx] = 'test'
             self.adata_true.obs['dca_split'] = spl.values
             self.adata_raw.obs['dca_split'] = spl.values
+            self.sf['dca_split'] = spl.values
 
             self.val_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'test'].X)).to(device)
             self.val_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'test'].X)).to(device)
-            self.val_size_factors = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'test'].obs.size_factors)).to(device)
+            self.val_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'test']['0'])).to(device)
 
             self.train_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'train'].X)).to(device)
             self.train_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'train'].X)).to(device)
-            self.train_size_factors = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'train'].obs.size_factors)).to(device)
+            self.train_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'train']['0'])).to(device)
     
         self.train = 0
         self.val = 1
