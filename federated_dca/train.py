@@ -43,7 +43,7 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
         dca = save_and_load_init_model(dca, name)
     optimizer = torch.optim.RMSprop(dca.parameters(), lr=lr)
     # loss_zinb = NBLoss()
-    loss_zinb = ZINBLoss(ridge_lambda=ridge)
+    loss_zinb = ZINBLoss(ridge_lambda=ridge, device=device)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr)
 
     best_val_loss = float('inf')
@@ -232,8 +232,11 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500,
             modeltype='zinb', path_global='/data/global/', param_factor=1, seed=42):
 
-    #mp.set_start_method('spawn')
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if torch.cuda.is_available():
+        mp.set_start_method('spawn')
+        device = 'cuda'  
+    else:
+        device =  'cpu'
     directory = os.path.abspath(os.getcwd())# + inputfiles
     #inputfiles = [os.path.abspath(os.path.join(directory, p)) for p in os.listdir(directory)]
     inputfiles = sort_paths(directory+inputfiles)
@@ -267,12 +270,12 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
         global_model = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
         client_models = [ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
                         for _ in list(range(num_clients))]
-        loss = ZINBLoss(ridge_lambda=ridge)
+        loss = ZINBLoss(ridge_lambda=ridge, device=device)
     else:
         global_model = NBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
         client_models = [NBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
                         for _ in list(range(num_clients))]
-        loss = NBLoss()
+        loss = NBLoss(device=device)
     
     [model.load_state_dict(global_model.state_dict()) for model in client_models]
     
