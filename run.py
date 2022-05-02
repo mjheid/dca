@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument('-e', '--epoch', type=int, default=500)
     parser.add_argument('--model', type=str, default='zinb')
     parser.add_argument('-pf', '--param_factor', type=float, default=0.1)
+    parser.add_argument('-g', '--gridsearch', type=bool, default=False)
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -54,31 +55,91 @@ if __name__ == '__main__':
     reduce_lr = args.reduce_lr
     early_stopping = args.early_stopping
     EPOCH = args.epoch
-    model = args.model
+    modeltype = args.model
     path_global = args.path_global
     param_factor = args.param_factor
     seed = args.seed
 
-    from federated_dca.train import train_with_clients
+    from federated_dca.train import train_with_clients, train
+    import scanpy as sc
+    from sklearn.metrics import silhouette_score
 
-    train_with_clients(inputfiles=inputfiles,
-                num_clients=num_clients,
-                transpose=transpose,
-                loginput=loginput,
-                norminput=norminput,
-                test_split=test_split,
-                filter_min_counts=filter_min_counts,
-                size_factor=size_factor,
-                batch_size=batch_size,
-                encoder_size=encoder_size,
-                bottleneck_size=bottleneck_size,
-                ridge=ridge,
-                name=name,
-                lr=lr,
-                reduce_lr=reduce_lr,
-                early_stopping=early_stopping,
-                EPOCH=EPOCH,
-                modeltype=model,
-                path_global=path_global,
-                param_factor=param_factor,
-                seed=seed)
+    if num_clients > 1:
+        adata, best_total_loss, model, epoch = train_with_clients(inputfiles=inputfiles,
+                    num_clients=num_clients,
+                    transpose=transpose,
+                    loginput=loginput,
+                    norminput=norminput,
+                    test_split=test_split,
+                    filter_min_counts=filter_min_counts,
+                    size_factor=size_factor,
+                    batch_size=batch_size,
+                    encoder_size=encoder_size,
+                    bottleneck_size=bottleneck_size,
+                    ridge=ridge,
+                    name=name,
+                    lr=lr,
+                    reduce_lr=reduce_lr,
+                    early_stopping=early_stopping,
+                    EPOCH=EPOCH,
+                    modeltype=modeltype,
+                    path_global=path_global,
+                    param_factor=param_factor,
+                    seed=seed)
+    else:
+        adata, best_total_loss, model, epoch = train(path=inputfiles,
+                    EPOCH=EPOCH,
+                    lr=lr,
+                    batchsize=batch_size,
+                    transpose=transpose,
+                    reduce_lr=reduce_lr,
+                    early_stopping=early_stopping,
+                    name=name,
+                    loginput=loginput,
+                    test_split=test_split,
+                    norminput=norminput,
+                    ridge=ridge,
+                    seed=seed,
+                    encoder_size=encoder_size,
+                    bottleneck_size=bottleneck_size)
+    
+    if args.gridsearch:
+        sc.pp.normalize_total(adata)
+        sc.pp.log1p(adata)
+        sc.pp.pca(adata)
+        sc.pp.neighbors(adata)
+        sc.tl.umap(adata)
+        adata.obs['Group'] = adata.obs.index.values
+        sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs.Group)
+        print(f'SIL score: {sil_score}')
+
+        import os.path
+        import torch
+
+        directory = os.path.abspath(os.getcwd())
+        if os.path.exists(os.path.join(directory, f'{name}.pt')):
+            checkpoint = torch.load(f'{name}.pt')
+            prev_best_total_loss = checkpoint['best_total_loss']
+            prev_best_sil_score = checkpoint['best_sil_score']
+        else:
+            prev_best_total_loss = float('inf')
+            prev_best_sil_score = float('-inf')
+        
+        if sil_score > prev_best_sil_score:
+            torch.save({
+                'model': model.state_dict(),
+                'best_total_loss': best_total_loss,
+                'best_sil_score': sil_score,
+                'batch_size': batch_size,
+                'lr': lr,
+                'reduce_lr': reduce_lr,
+                'early_stopping': early_stopping,
+                'seed': seed,
+                'encoder_size': encoder_size,
+                'bottleneck_size': bottleneck_size,
+                'epoch': epoch,
+                'model_type': modeltype
+            }, f'{name}.pt')
+        
+        with open('data/checkpoints/log.txt', 'a') as logfile:
+            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}')

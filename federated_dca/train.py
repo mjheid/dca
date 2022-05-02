@@ -10,7 +10,7 @@ import random
 import os
 
 
-def train(path='', EPOCH=500, lr=0.001, batch=32,
+def train(path='', EPOCH=500, lr=0.001,
         transpose=True, reduce_lr=10, early_stopping=15,
         name='dca', name2=None, loginput=True, test_split=True,
         norminput=True, batchsize=32, ridge=0.0, seed=42,
@@ -28,6 +28,8 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     os.environ['PYTHONHASHSEED'] = '0'
+
+    path = os.path.abspath(os.getcwd()) + path
 
     dataset = GeneCountData(path, device, transpose=transpose, test_split=test_split,
                             loginput=loginput, norminput=norminput)
@@ -90,7 +92,8 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
                 if avg_loss < best_val_loss:
                     best_val_loss = avg_loss
                     es_count = 0
-                    torch.save(dca.state_dict(), 'data/checkpoints/'+name+'.pt')
+                    torch.save({'model': dca.state_dict(),
+                                'epoch': epoch}, 'data/checkpoints/'+name+'.pt')
                 else:
                     es_count += 1
             if es_count >= early_stopping:
@@ -102,7 +105,8 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
 
     dca = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
     #dca = NBAutoEncoder(input_size=input_size, encoder_size=64, bottleneck_size=32).to(device)
-    dca.load_state_dict(torch.load('data/checkpoints/'+name+'.pt'))
+    dca.load_state_dict(torch.load('data/checkpoints/'+name+'.pt')['model'])
+    epoch = torch.load('data/checkpoints/'+name+'.pt')['epoch']
     dca.eval()
 
     # if name2:
@@ -115,11 +119,12 @@ def train(path='', EPOCH=500, lr=0.001, batch=32,
     eval_dataloader = DataLoader(dataset, batch_size=dataset.__len__())
     for data, target, size_factor in eval_dataloader:
         mean, disp, drop = dca(data, size_factor)
+        loss = loss_zinb(target, mean, disp, drop)
         #mean, disp = dca(data)
     adata = dataset.adata.copy()
     adata.X = mean.detach().numpy()
     
-    return adata
+    return adata, loss.item(), dca, epoch
     
 
 def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
@@ -237,8 +242,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
         device = 'cuda'  
     else:
         device =  'cpu'
-    directory = os.path.abspath(os.getcwd())# + inputfiles
-    #inputfiles = [os.path.abspath(os.path.join(directory, p)) for p in os.listdir(directory)]
+    directory = os.path.abspath(os.getcwd())
     inputfiles = sort_paths(directory+inputfiles)
     global_input = sort_paths(directory+path_global, client=False)
 
@@ -282,7 +286,6 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     optimizers = [torch.optim.RMSprop(model.parameters(), lr=lr) for model in client_models]
     schedulers = [torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr) for optimizer in optimizers]
 
-    best_val_loss = [float('inf') for _ in list(range(num_clients+1))]
     earlystopping = [mp.Event() for _ in list(range(num_clients+1))]
     [e.set() for e in earlystopping]
     es_count = [0 for _ in list(range(num_clients+1))]
@@ -312,5 +315,20 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             processes.append(p)
     for p in processes:
         p.join()
+    
+    global_model.load_state_dict(torch.load('data/checkpoints/'+name+f'_global.pt')['model'])
+    epoch = torch.load('data/checkpoints/'+name+f'_global.pt')['epoch']
+    for data, target, size_factor in globalDataLoader:
+        if modeltype == 'zinb':
+            mean, disp, drop = global_model(data, size_factor)
+            l = loss(target, mean, disp, drop)
+        else:
+            mean, disp = global_model(data)
+            l = loss(data, mean, disp)
+
+    adata = global_dataset.adata.copy()
+    adata.X = mean.detach().numpy()
+
+    return adata, l.item(), global_model, epoch
 
     

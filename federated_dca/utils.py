@@ -350,7 +350,8 @@ def global_agg(client_models,
                     best_val_loss = avg_loss
                     es_count = 0
                     earlystopping_own.set()
-                    torch.save(global_model.state_dict(), 'data/checkpoints/'+name+f'_global.pt')
+                    torch.save({'model': global_model.state_dict(),
+                                'epoch': epoch}, 'data/checkpoints/'+name+f'_global.pt')
                 else:
                     es_count += 1
                 if es_count >= early_stopping and not earlystopping_prev.is_set():
