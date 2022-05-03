@@ -10,9 +10,9 @@ do
             do
                 for epoch in 2
                 do 
-                    python3 -m run -clients 2 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
-                    python3 -m run -clients 2 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
-                    python3 -m run -clients 2 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
+                    python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
+                    python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
+                    python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
                 done
             done
         done

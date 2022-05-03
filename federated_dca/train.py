@@ -226,7 +226,7 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
     for data, target, size_factor in eval_dataloader:
         mean, disp = dca(data, size_factor)
     adata = dataset.adata.copy()
-    adata.X = mean.detach().numpy()
+    adata.X = mean.detach().cpu().numpy()
     
     return adata
 
@@ -329,7 +329,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             l = loss(data, mean, disp)
 
     adata = global_dataset.adata_true.copy()
-    adata.X = mean.detach().numpy()
+    adata.X = mean.detach().cpu().numpy()
 
     return adata, l.item(), global_model, epoch
 
