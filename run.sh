@@ -8,11 +8,11 @@ do
         do
             for reduce_lr in 10 20 40 80
             do
-                for epoch in 1
+                for epoch in 2
                 do 
-                    python3 -m run -clients 1 --name "localtest" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
-                    python3 -m run -clients 1 --name "localtest" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
-                    python3 -m run -clients 1 --name "localtest" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
+                    python3 -m run -clients 2 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
+                    python3 -m run -clients 2 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
+                    python3 -m run -clients 2 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/data.csv'
                 done
             done
         done

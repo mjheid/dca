@@ -318,7 +318,9 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     
     global_model.load_state_dict(torch.load('data/checkpoints/'+name+f'_global.pt')['model'])
     epoch = torch.load('data/checkpoints/'+name+f'_global.pt')['epoch']
-    for data, target, size_factor in globalDataLoader:
+    global_dataset.set_mode(global_dataset.test)
+    eval_dataloader = DataLoader(global_dataset, batch_size=global_dataset.__len__())
+    for data, target, size_factor in eval_dataloader:
         if modeltype == 'zinb':
             mean, disp, drop = global_model(data, size_factor)
             l = loss(target, mean, disp, drop)
@@ -326,7 +328,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             mean, disp = global_model(data)
             l = loss(data, mean, disp)
 
-    adata = global_dataset.adata.copy()
+    adata = global_dataset.adata_true.copy()
     adata.X = mean.detach().numpy()
 
     return adata, l.item(), global_model, epoch

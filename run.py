@@ -1,5 +1,4 @@
-import os, sys, argparse
-from federated_dca.train import train
+import os, argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Autoencoder')
@@ -142,4 +141,4 @@ if __name__ == '__main__':
             }, f'{name}.pt')
         
         with open('data/checkpoints/log.txt', 'a') as logfile:
-            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}')
+            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}' + os.linesep)
