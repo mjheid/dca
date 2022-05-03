@@ -122,7 +122,7 @@ def train(path='', EPOCH=500, lr=0.001,
         loss = loss_zinb(target, mean, disp, drop)
         #mean, disp = dca(data)
     adata = dataset.adata.copy()
-    adata.X = mean.detach().numpy()
+    adata.X = mean.detach().cpu().numpy()
     
     return adata, loss.item(), dca, epoch
     
