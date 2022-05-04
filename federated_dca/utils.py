@@ -239,6 +239,7 @@ def average_model_params(model_params):
         
     return params
 
+
 def aggregate(global_model, client_models, client_lens, param_factor):
     total = sum(client_lens)
     n = len(client_models)
@@ -251,6 +252,7 @@ def aggregate(global_model, client_models, client_lens, param_factor):
         for key in global_dict.keys():
             model_dict[key] = model_dict[key] + param_factor * (global_dict[key] - model_dict[key])
         model.load_state_dict(model_dict)
+
 
 def train_client(model,
                 trainDataLoader, loss, optimizer,
@@ -443,4 +445,23 @@ def gen_iid_client_data(path, num_clients, name='', ptrn_data='data', ptrn_norm_
         client_norm_df.to_csv(outputpath+'norm'+name+'_'+str(i+1)+'.csv')
         client_true_df.to_csv(outputpath+'data'+name+'_'+str(i+1)+'.csv')
         client_anno_df.to_csv(outputpath+'anno'+name+'_'+str(i+1)+'.csv')
-        
+
+
+def plot_client_classes(path, ptrn='Group', name='client_data.pdf'):
+    paths = sort_paths(path)
+    df = pd.DataFrame()
+    for i in range(len(paths)):
+        path = paths[i][0]
+        client = pd.read_csv(path)
+        client['Client'] = f'Client {i}'
+        df = pd.concat([df, client])
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    fig, ax = plt.subplots(1, len(paths), figsize=(16,4))
+    for i in range(len(paths)):
+        sns.countplot(data=df.where(df['Client']==f'Client {i}').dropna(), x='Client', hue='Group', ax=ax[i])
+    # lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+    # lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    # fig.legend(lines, labels)
+    # plt.show()
+    plt.savefig(name)
