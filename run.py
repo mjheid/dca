@@ -147,7 +147,7 @@ if __name__ == '__main__':
             fig, axs = plt.subplots(1, 1, figsize=(6,4))
             sc.pl.umap(adatas6, color='Group', size=20, title=adata_labels6, ax=axs, show=False, legend_loc='none')
             plt.tight_layout()
-            plt.savefig('cluster.pdf')
+            plt.savefig(f'{name}_cluster.pdf')
             plt.close()
         with open('data/checkpoints/log.txt', 'a') as logfile:
             logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}, cl: {num_clients}' + os.linesep)

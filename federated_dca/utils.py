@@ -465,3 +465,29 @@ def plot_client_classes(path, ptrn='Group', name='client_data.pdf'):
     # fig.legend(lines, labels)
     # plt.show()
     plt.savefig(name)
+
+
+def parse_log_file(path):
+    with open(path, 'r') as logfile:
+        df = pd.DataFrame()
+        dic = {}
+        for i, line in enumerate(logfile):
+            if i == 0:
+                pairs = line.split(',')
+                for pair in pairs:
+                    if len(pair.split(' ')[0]) == 0:
+                        dic[pair.split(' ')[1]] = []
+                    else:
+                        dic[pair.split(' ')[0]] = []
+            pairs = line.split(',')
+            for pair in pairs:
+                pair = pair.split(' ')
+                if len(pair[0]) == 0:
+                    dic[pair[1]].append(pair[2])
+                else:
+                    dic[pair[0]].append(pair[1])
+        for key in dic.keys():
+            print(key)
+            df[key] = dic[key]
+        print(df)
+        return df
