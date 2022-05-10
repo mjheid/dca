@@ -255,12 +255,12 @@ def aggregate(global_model, client_models, client_lens, param_factor):
 
 
 def train_client(model,
-                trainDataLoader, loss, optimizer,
-                valDataLoader, e, aggregate_flag, es_count,
-                earlystopping_own, earlystopping_prev, earlystopping_cond, 
-                early_stopping, EPOCH, dataset, name, client, scheduler, modeltype):
+                trainDataLoader, loss, optimizer, valDataLoader, e, aggregate_flag, es_count,
+                earlystopping_own, earlystopping_prev, earlystopping_cond, early_stopping, 
+                EPOCH, dataset, name, client, scheduler, modeltype, local_epoch):
 
     best_val_loss = float('inf')
+    local_epoch_count = 0
     for epoch in range(EPOCH):
         if  earlystopping_cond.is_set():
             train_loss = 0
@@ -312,9 +312,12 @@ def train_client(model,
                     earlystopping_own.clear()
                 elif es_count >= early_stopping and not earlystopping_prev.is_set():
                     earlystopping_own.clear()
-                e.set()
-                aggregate_flag.wait()
-                e.clear()
+                local_epoch_count += 1
+                if local_epoch_count >= local_epoch:
+                    e.set()
+                    aggregate_flag.wait()
+                    e.clear()
+                    local_epoch_count = 0
         else:
             e.set()
             earlystopping_own.clear()
@@ -487,7 +490,5 @@ def parse_log_file(path):
                 else:
                     dic[pair[0]].append(pair[1])
         for key in dic.keys():
-            print(key)
             df[key] = dic[key]
-        print(df)
         return df

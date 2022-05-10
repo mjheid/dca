@@ -234,7 +234,7 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
 def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False, loginput=False, norminput=False,
             test_split=0.1, filter_min_counts=False, size_factor=False, batch_size=32,
             encoder_size=64, bottleneck_size=32, ridge=0.0, name='dca',
-            lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500,
+            lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500, local_epoch=1,
             modeltype='zinb', path_global='/data/global/', param_factor=1, seed=42):
 
     if torch.cuda.is_available():
@@ -303,7 +303,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
                             trainDataLoaders[rank], loss, optimizers[rank],
                             valDataLoaders[rank], e, aggregate_flag, es_count[rank],
                             earlystopping[rank], earlystopping[rank-1], earlystopping[-1], early_stopping, EPOCH, datasets[rank], name, rank, 
-                            schedulers[rank], modeltype))
+                            schedulers[rank], modeltype, local_epoch))
             p.start()
             processes.append(p)
         else:

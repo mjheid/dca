@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument('--model', type=str, default='zinb')
     parser.add_argument('-pf', '--param_factor', type=float, default=0.1)
     parser.add_argument('-g', '--gridsearch', type=bool, default=False)
+    parser.add_argument('-le', '--local_epoch', type=int, default=1)
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -58,6 +59,7 @@ if __name__ == '__main__':
     path_global = args.path_global
     param_factor = args.param_factor
     seed = args.seed
+    local_epoch = args.local_epoch
 
     from federated_dca.train import train_with_clients, train
     import scanpy as sc
@@ -84,7 +86,8 @@ if __name__ == '__main__':
                     modeltype=modeltype,
                     path_global=path_global,
                     param_factor=param_factor,
-                    seed=seed)
+                    seed=seed, 
+                    local_epoch=local_epoch)
     else:
         adata, best_total_loss, model, epoch = train(path=inputfiles,
                     EPOCH=EPOCH,
