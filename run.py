@@ -153,4 +153,4 @@ if __name__ == '__main__':
             plt.savefig(f'{name}_cluster.pdf')
             plt.close()
         with open('data/checkpoints/log.txt', 'a') as logfile:
-            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}, cl: {num_clients}' + os.linesep)
+            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}, cl: {num_clients}, le: {local_epoch}' + os.linesep)
