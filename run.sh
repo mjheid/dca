@@ -2,7 +2,7 @@
 
 for batchsize in 8 16 32 64
 do
-    for lr in 0.1 0.01 0.001 0.0001
+    for lr in 0.01 0.001 0.0001
     do
         for early_stopping in 25
         do

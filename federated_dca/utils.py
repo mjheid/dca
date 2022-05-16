@@ -337,7 +337,10 @@ def global_agg(client_models,
                 event.wait()
             with torch.no_grad():
                 test_loss = 0
-                aggregate(global_model, client_models, client_lens, param_factor)
+                if len(client_lens) > 1:
+                    aggregate(global_model, client_models, client_lens, param_factor)
+                else:
+                    global_model = client_models[0]
                 aggregate_flag.set()
                 aggregate_flag.clear()
                 for data, target, size_factor in globalDataLoader:
@@ -387,20 +390,20 @@ def denoise(model, name, path, dataset, modeltype, result, outputdir):
 
 
 def sort_paths(paths, client=True, ptrn_data='data', ptrn_norm_data='norm', ptrn_anno='anno'):
-    if not client:
-        data_path = glob.glob(paths+f'*{ptrn_data}*')
-        norm_data_path = glob.glob(paths+f'*{ptrn_norm_data}*')
-        anno_path = glob.glob(paths+f'*{ptrn_anno}*')
-        return [data_path[0], norm_data_path[0], anno_path[0]]
-    else:
-        ordered_path_list = []
-        for i in range(int(len(glob.glob(paths+'*.csv'))/3)):
-            i +=1
-            data_path = glob.glob(paths+f'*{ptrn_data}*{i}*')
-            norm_data_path = glob.glob(paths+f'*{ptrn_norm_data}*{i}*')
-            anno_path = glob.glob(paths+f'*{ptrn_anno}*{i}*')
-            ordered_path_list.append([data_path[0], norm_data_path[0], anno_path[0]])
-        return ordered_path_list
+    # if not client:
+    #     data_path = glob.glob(paths+f'*{ptrn_data}*')
+    #     norm_data_path = glob.glob(paths+f'*{ptrn_norm_data}*')
+    #     anno_path = glob.glob(paths+f'*{ptrn_anno}*')
+    #     return [data_path[0], norm_data_path[0], anno_path[0]]
+    # else:
+    ordered_path_list = []
+    for i in range(int(len(glob.glob(paths+'*.csv'))/3)):
+        i +=1
+        data_path = glob.glob(paths+f'*{ptrn_data}*{i}*')
+        norm_data_path = glob.glob(paths+f'*{ptrn_norm_data}*{i}*')
+        anno_path = glob.glob(paths+f'*{ptrn_anno}*{i}*')
+        ordered_path_list.append([data_path[0], norm_data_path[0], anno_path[0]])
+    return ordered_path_list
 
 
 def gen_iid_client_data(path, num_clients, name='', ptrn_data='data', ptrn_norm_data='norm', outputpath='data/input/', idx='Group'):

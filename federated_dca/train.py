@@ -244,7 +244,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
         device =  'cpu'
     directory = os.path.abspath(os.getcwd())
     inputfiles = sort_paths(directory+inputfiles)
-    global_input = sort_paths(directory+path_global, client=False)
+    global_input = sort_paths(directory+path_global, client=False)[0]
 
     # Seed
     torch.manual_seed(seed)

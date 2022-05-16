@@ -65,45 +65,29 @@ if __name__ == '__main__':
     import scanpy as sc
     from sklearn.metrics import silhouette_score
 
-    if num_clients > 1:
-        adata, best_total_loss, model, epoch = train_with_clients(inputfiles=inputfiles,
-                    num_clients=num_clients,
-                    transpose=transpose,
-                    loginput=loginput,
-                    norminput=norminput,
-                    test_split=test_split,
-                    filter_min_counts=filter_min_counts,
-                    size_factor=size_factor,
-                    batch_size=batch_size,
-                    encoder_size=encoder_size,
-                    bottleneck_size=bottleneck_size,
-                    ridge=ridge,
-                    name=name,
-                    lr=lr,
-                    reduce_lr=reduce_lr,
-                    early_stopping=early_stopping,
-                    EPOCH=EPOCH,
-                    modeltype=modeltype,
-                    path_global=path_global,
-                    param_factor=param_factor,
-                    seed=seed, 
-                    local_epoch=local_epoch)
-    else:
-        adata, best_total_loss, model, epoch = train(path=inputfiles,
-                    EPOCH=EPOCH,
-                    lr=lr,
-                    batchsize=batch_size,
-                    transpose=transpose,
-                    reduce_lr=reduce_lr,
-                    early_stopping=early_stopping,
-                    name=name,
-                    loginput=loginput,
-                    test_split=test_split,
-                    norminput=norminput,
-                    ridge=ridge,
-                    seed=seed,
-                    encoder_size=encoder_size,
-                    bottleneck_size=bottleneck_size)
+    adata, best_total_loss, model, epoch = train_with_clients(inputfiles=inputfiles,
+                num_clients=num_clients,
+                transpose=transpose,
+                loginput=loginput,
+                norminput=norminput,
+                test_split=test_split,
+                filter_min_counts=filter_min_counts,
+                size_factor=size_factor,
+                batch_size=batch_size,
+                encoder_size=encoder_size,
+                bottleneck_size=bottleneck_size,
+                ridge=ridge,
+                name=name,
+                lr=lr,
+                reduce_lr=reduce_lr,
+                early_stopping=early_stopping,
+                EPOCH=EPOCH,
+                modeltype=modeltype,
+                path_global=path_global,
+                param_factor=param_factor,
+                seed=seed, 
+                local_epoch=local_epoch)
+    
     
     if args.gridsearch:
         sc.pp.normalize_total(adata)
