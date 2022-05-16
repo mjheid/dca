@@ -265,7 +265,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     input_size = datasets[0].gene_num
 
     [dataset.set_mode(dataset.train) for dataset in datasets]
-    trainDataLoaders = [DataLoader(dataset, batch_size=batch_size, shuffle=True) for dataset in datasets]
+    trainDataLoaders = [DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True) for dataset in datasets]
     client_lens = [trainDataLoader.__len__() for trainDataLoader in trainDataLoaders]
     [dataset.set_mode(dataset.val) for dataset in datasets]
     valDataLoaders = [DataLoader(dataset, batch_size=batch_size) for dataset in datasets]
