@@ -9,7 +9,6 @@ import torch
 from torch.utils.data import DataLoader
 from federated_dca.datasets import GeneCountData, write_text_matrix
 import glob
-from time import sleep
 
 def save_and_load_init_model(model, mname, base='data/checkpoints/'):
     if os.path.exists(os.path.abspath('.') + base + '/init_' + mname + '.npy'):
@@ -269,7 +268,6 @@ def train_client(model,
             train_loss = 0
             model.train()
             dataset.set_mode(dataset.test)
-            sleep(10)
             print(f'Epoch: {epoch}')
             for data, target, size_factor in trainDataLoader:
                 if modeltype == 'zinb':
@@ -338,7 +336,6 @@ def global_agg(client_models,
     avg_loss = float('inf')
     for epoch in range(EPOCH):
         if earlystopping_own.is_set() and earlystopping_prev.is_set():
-            sleep(2)
             for event in events:
                 event.wait()
             with torch.no_grad():
