@@ -265,11 +265,11 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     input_size = datasets[0].gene_num
 
     [dataset.set_mode(dataset.train) for dataset in datasets]
-    trainDataLoaders = [DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True) for dataset in datasets]
+    trainDataLoaders = [DataLoader(dataset, batch_size=dataset.__len__(), shuffle=True, drop_last=False) for dataset in datasets]
     client_lens = [trainDataLoader.__len__() for trainDataLoader in trainDataLoaders]
     [dataset.set_mode(dataset.val) for dataset in datasets]
-    valDataLoaders = [DataLoader(dataset, batch_size=batch_size) for dataset in datasets]
-    globalDataLoader = DataLoader(global_dataset, batch_size=batch_size)
+    valDataLoaders = [DataLoader(dataset, batch_size=dataset.__len__()) for dataset in datasets]
+    globalDataLoader = DataLoader(global_dataset, batch_size=global_dataset.__len__())
     if modeltype == 'zinb':
         global_model = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
         client_models = [ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
@@ -281,7 +281,9 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
                         for _ in list(range(num_clients))]
         loss = NBLoss(device=device)
     
-    [model.load_state_dict(global_model.state_dict()) for model in client_models]
+    [model.load_state_dict(torch.load(global_model.state_dict())) for model in client_models]
+    #[model.load_state_dict(torch.load('/home/kaies/csb/data/dca/inital.pt')) for model in client_models]
+    #global_model.load_state_dict(torch.load('/home/kaies/csb/data/dca/inital.pt'))
     
     optimizers = [torch.optim.RMSprop(model.parameters(), lr=lr) for model in client_models]
     schedulers = [torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr) for optimizer in optimizers]

@@ -30,19 +30,19 @@ class AutoEncoder(torch.nn.Module):
 
         self.encoder = torch.nn.Sequential(
             torch.nn.Linear(self.input_size, self.encoder_size, bias=False),
-            torch.nn.BatchNorm1d(self.encoder_size),
+            #torch.nn.BatchNorm1d(self.encoder_size),
             torch.nn.ReLU()
             )
         
         self.bottleneck = torch.nn.Sequential(
             torch.nn.Linear(self.encoder_size, self.bottleneck_size, bias=False),
-            torch.nn.BatchNorm1d(self.bottleneck_size),
+            #torch.nn.BatchNorm1d(self.bottleneck_size),
             torch.nn.ReLU()
             )
 
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(self.bottleneck_size, self.encoder_size, bias=False),
-            torch.nn.BatchNorm1d(self.encoder_size),
+            #torch.nn.BatchNorm1d(self.encoder_size),
             torch.nn.ReLU()
             )
         

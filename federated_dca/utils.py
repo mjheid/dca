@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 from federated_dca.datasets import GeneCountData, write_text_matrix
 import glob
+from time import sleep
 
 def save_and_load_init_model(model, mname, base='data/checkpoints/'):
     if os.path.exists(os.path.abspath('.') + base + '/init_' + mname + '.npy'):
@@ -245,11 +246,13 @@ def aggregate(global_model, client_models, client_lens, param_factor):
     n = len(client_models)
     global_dict = global_model.state_dict()
     for key in global_dict.keys():
-        global_dict[key] = torch.stack([client_models[i].state_dict()[key].float()*(n*client_lens[i]/total) for i in range(len(client_models))], 0).mean(0)
+            global_dict[key] = torch.stack([client_models[i].state_dict()[key].float()*(n*client_lens[i]/total) for i in range(len(client_models))], 0).mean(0)
     global_model.load_state_dict(global_dict)
     for model in client_models:
         model_dict = model.state_dict()
         for key in global_dict.keys():
+            # keysplit = key.split('.')
+            # if (keysplit[0] == 'encoder' and keysplit[1] == '1') or (keysplit[0] == 'bottleneck' and keysplit[1] == '1') or (keysplit[0] == 'decoder' and keysplit[1] == '1'):
             model_dict[key] = model_dict[key] + param_factor * (global_dict[key] - model_dict[key])
         model.load_state_dict(model_dict)
 
@@ -265,7 +268,8 @@ def train_client(model,
         if  earlystopping_cond.is_set():
             train_loss = 0
             model.train()
-            dataset.set_mode(dataset.train)
+            dataset.set_mode(dataset.test)
+            sleep(10)
             print(f'Epoch: {epoch}')
             for data, target, size_factor in trainDataLoader:
                 if modeltype == 'zinb':
@@ -277,6 +281,7 @@ def train_client(model,
 
                 optimizer.zero_grad()
                 l.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 3)
                 optimizer.step()
 
                 train_loss += l.item()
@@ -287,7 +292,7 @@ def train_client(model,
             val_loss = 0
             with torch.no_grad():
                 model.eval()
-                dataset.set_mode(dataset.val)
+                dataset.set_mode(dataset.test)
                 for data, target, size_factor in valDataLoader:
                     if modeltype == 'zinb':
                         mean, disp, drop = model(data, size_factor)
@@ -333,6 +338,7 @@ def global_agg(client_models,
     avg_loss = float('inf')
     for epoch in range(EPOCH):
         if earlystopping_own.is_set() and earlystopping_prev.is_set():
+            sleep(2)
             for event in events:
                 event.wait()
             with torch.no_grad():
@@ -340,7 +346,7 @@ def global_agg(client_models,
                 if len(client_lens) > 1:
                     aggregate(global_model, client_models, client_lens, param_factor)
                 else:
-                    global_model = client_models[0]
+                    global_model.load_state_dict(client_models[0].state_dict())
                 aggregate_flag.set()
                 aggregate_flag.clear()
                 for data, target, size_factor in globalDataLoader:

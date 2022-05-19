@@ -12,21 +12,21 @@ do
                 do
                     for local_epoch in 1 2 4 8 16
                     do
-                        python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/' --local_epoch $local_epoch
-                        python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/'  --local_epoch $local_epoch
-                        python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/'  --local_epoch $local_epoch
-                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/' --local_epoch $local_epoch
-                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/'  --local_epoch $local_epoch
-                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/'  --local_epoch $local_epoch
-                        python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/' --local_epoch $local_epoch
-                        python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/'  --local_epoch $local_epoch
-                        python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/'  --local_epoch $local_epoch
-                        python3 -m run -clients 5 --name "client5" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input5/' --local_epoch $local_epoch
-                        python3 -m run -clients 5 --name "client5" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input5/'  --local_epoch $local_epoch
-                        python3 -m run -clients 5 --name "client5" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input5/'  --local_epoch $local_epoch
-                        python3 -m run -clients 2 --name "clientniid2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/noniid_input2/' --local_epoch $local_epoch
-                        python3 -m run -clients 2 --name "clientniid2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/noniid_input2/'  --local_epoch $local_epoch
-                        python3 -m run -clients 2 --name "clientniid2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/noniid_input2/'  --local_epoch $local_epoch
+                        python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/' --local_epoch $local_epoch --param_factor 1
+                        python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/' --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/' --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 5 --name "client5" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input5/' --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 5 --name "client5" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input5/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 5 --name "client5" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input5/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 2 --name "clientniid2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/noniid_input2/' --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 2 --name "clientniid2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/noniid_input2/'  --local_epoch $local_epoch  --param_factor 1
+                        python3 -m run -clients 2 --name "clientniid2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/noniid_input2/'  --local_epoch $local_epoch  --param_factor 1
                     done
                 done
             done
