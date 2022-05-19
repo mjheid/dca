@@ -321,7 +321,6 @@ def train_client(model,
                     aggregate_flag.wait()
                     e.clear()
                     local_epoch_count = 0
-                print(f'{client}: {es_count}')
         else:
             e.set()
             earlystopping_own.clear()
