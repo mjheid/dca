@@ -245,7 +245,7 @@ def aggregate(global_model, client_models, client_lens, param_factor):
     n = len(client_models)
     global_dict = global_model.state_dict()
     for key in global_dict.keys():
-            global_dict[key] = torch.stack([client_models[i].state_dict()[key].float()*(n*client_lens[i]/total) for i in range(len(client_models))], 0).mean(0)
+        global_dict[key] = torch.stack([client_models[i].state_dict()[key].float()*(n*client_lens[i]/total) for i in range(len(client_models))], 0).mean(0)
     global_model.load_state_dict(global_dict)
     for model in client_models:
         model_dict = model.state_dict()
@@ -321,6 +321,7 @@ def train_client(model,
                     aggregate_flag.wait()
                     e.clear()
                     local_epoch_count = 0
+                print(f'{client}: {es_count}')
         else:
             e.set()
             earlystopping_own.clear()
@@ -335,7 +336,7 @@ def global_agg(client_models,
     best_val_loss = float('inf')
     avg_loss = float('inf')
     for epoch in range(EPOCH):
-        if earlystopping_own.is_set() and earlystopping_prev.is_set():
+        if earlystopping_own.is_set():
             for event in events:
                 event.wait()
             with torch.no_grad():

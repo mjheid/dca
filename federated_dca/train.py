@@ -281,7 +281,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
                         for _ in list(range(num_clients))]
         loss = NBLoss(device=device)
     
-    [model.load_state_dict(torch.load(global_model.state_dict())) for model in client_models]
+    [model.load_state_dict(global_model.state_dict()) for model in client_models]
     #[model.load_state_dict(torch.load('/home/kaies/csb/data/dca/inital.pt')) for model in client_models]
     #global_model.load_state_dict(torch.load('/home/kaies/csb/data/dca/inital.pt'))
     
