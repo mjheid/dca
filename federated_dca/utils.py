@@ -267,7 +267,7 @@ def train_client(model,
         if  earlystopping_cond.is_set():
             train_loss = 0
             model.train()
-            dataset.set_mode(dataset.test)
+            dataset.set_mode(dataset.train)
             print(f'Epoch: {epoch}')
             for data, target, size_factor in trainDataLoader:
                 if modeltype == 'zinb':
@@ -290,7 +290,7 @@ def train_client(model,
             val_loss = 0
             with torch.no_grad():
                 model.eval()
-                dataset.set_mode(dataset.test)
+                dataset.set_mode(dataset.val)
                 for data, target, size_factor in valDataLoader:
                     if modeltype == 'zinb':
                         mean, disp, drop = model(data, size_factor)

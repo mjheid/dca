@@ -265,11 +265,11 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     input_size = datasets[0].gene_num
 
     [dataset.set_mode(dataset.train) for dataset in datasets]
-    trainDataLoaders = [DataLoader(dataset, batch_size=dataset.__len__(), shuffle=True, drop_last=False) for dataset in datasets]
+    trainDataLoaders = [DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=False) for dataset in datasets]
     client_lens = [trainDataLoader.__len__() for trainDataLoader in trainDataLoaders]
     [dataset.set_mode(dataset.val) for dataset in datasets]
-    valDataLoaders = [DataLoader(dataset, batch_size=dataset.__len__()) for dataset in datasets]
-    globalDataLoader = DataLoader(global_dataset, batch_size=global_dataset.__len__())
+    valDataLoaders = [DataLoader(dataset, batch_size=batch_size) for dataset in datasets]
+    globalDataLoader = DataLoader(global_dataset, batch_size=batch_size)
     if modeltype == 'zinb':
         global_model = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
         client_models = [ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
