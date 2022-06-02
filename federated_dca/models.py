@@ -1,4 +1,4 @@
-from pickle import TRUE
+from collections import OrderedDict
 import torch
 
 class MeanAct(torch.nn.Module):
@@ -30,22 +30,28 @@ class AutoEncoder(torch.nn.Module):
         self.bottleneck_size = bottleneck_size
 
         self.encoder = torch.nn.Sequential(
-            torch.nn.Linear(self.input_size, self.encoder_size, bias=TRUE),
-            #torch.nn.BatchNorm1d(self.encoder_size),
-            torch.nn.ReLU()
-            )
+            OrderedDict([
+            ('linear1', torch.nn.Linear(self.input_size, self.encoder_size, bias=True)),
+            #('bn1', torch.nn.BatchNorm1d(self.encoder_size)),
+            ('ln1', torch.nn.LayerNorm(self.encoder_size)),
+            ('relu1', torch.nn.ReLU())
+            ]))
         
         self.bottleneck = torch.nn.Sequential(
-            torch.nn.Linear(self.encoder_size, self.bottleneck_size, bias=True),
-            #torch.nn.BatchNorm1d(self.bottleneck_size),
-            torch.nn.ReLU()
-            )
+            OrderedDict([
+            ('linear2', torch.nn.Linear(self.encoder_size, self.bottleneck_size, bias=True)),
+            #('bn2', torch.nn.BatchNorm1d(self.bottleneck_size)),
+            ('ln2', torch.nn.LayerNorm(self.bottleneck_size)),
+            ('relu2', torch.nn.ReLU())
+            ]))
 
         self.decoder = torch.nn.Sequential(
-            torch.nn.Linear(self.bottleneck_size, self.encoder_size, bias=True),
-            #torch.nn.BatchNorm1d(self.encoder_size),
-            torch.nn.ReLU()
-            )
+            OrderedDict([
+            ('linear3', torch.nn.Linear(self.bottleneck_size, self.encoder_size, bias=True)),
+            #('bn3', torch.nn.BatchNorm1d(self.encoder_size)),
+            ('ln3', torch.nn.LayerNorm(self.encoder_size)),
+            ('relu3', torch.nn.ReLU())
+            ]))
         
         self.encoder.apply(init_weights)
         self.decoder.apply(init_weights)
@@ -64,14 +70,16 @@ class NBAutoEncoder(AutoEncoder):
         super().__init__(input_size, encoder_size, bottleneck_size)
 
         self.mean = torch.nn.Sequential(
-            torch.nn.Linear(self.encoder_size, self.input_size),
-            MeanAct()
-            )
+            OrderedDict([
+            ('linear_m', torch.nn.Linear(self.encoder_size, self.input_size)),
+            ('meanact', MeanAct())
+            ]))
 
         self.disp = torch.nn.Sequential(
-            torch.nn.Linear(self.encoder_size, self.input_size),
-            DispAct()
-            )
+            OrderedDict([
+            ('linear_di', torch.nn.Linear(self.encoder_size, self.input_size)),
+            ('dispact', DispAct())
+            ]))
         
         self.mean.apply(init_weights)
         self.disp.apply(init_weights)
@@ -94,19 +102,22 @@ class ZINBAutoEncoder(AutoEncoder):
         super().__init__(input_size, encoder_size, bottleneck_size)
 
         self.mean = torch.nn.Sequential(
-            torch.nn.Linear(self.encoder_size, self.input_size),
-            MeanAct()
-            )
+            OrderedDict([
+            ('linear_m', torch.nn.Linear(self.encoder_size, self.input_size)),
+            ('meanact', MeanAct())
+            ]))
 
         self.disp = torch.nn.Sequential(
-            torch.nn.Linear(self.encoder_size, self.input_size),
-            DispAct()
-            )
+            OrderedDict([
+            ('linear_di', torch.nn.Linear(self.encoder_size, self.input_size)),
+            ('dispact', DispAct())
+            ]))
             
         self.drop = torch.nn.Sequential(
-            torch.nn.Linear(self.encoder_size, self.input_size),
-            torch.nn.Sigmoid()
-            )
+            OrderedDict([
+            ('linear_dr', torch.nn.Linear(self.encoder_size, self.input_size)),
+            ('sigmoid', torch.nn.Sigmoid())
+            ]))
         
         self.mean.apply(init_weights)
         self.disp.apply(init_weights)
