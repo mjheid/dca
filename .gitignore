@@ -13,3 +13,5 @@ data/
 .vscode
 *.pt
 *.npy
+*.png
+*.csv

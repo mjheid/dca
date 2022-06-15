@@ -278,8 +278,8 @@ def train_client(model,
                     l = loss(data, mean, disp)
 
                 optimizer.zero_grad()
+                #torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
                 l.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
                 optimizer.step()
 
                 train_loss += l.item()
