@@ -282,8 +282,8 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
         loss = NBLoss(device=device)
     
     [model.load_state_dict(global_model.state_dict()) for model in client_models]
-    #[model.load_state_dict(torch.load('/home/kaies/csb/data/dca/inital.pt')) for model in client_models]
-    #global_model.load_state_dict(torch.load('/home/kaies/csb/data/dca/inital.pt'))
+    #[model.load_state_dict(torch.load('/home/kaies/csb/data/dca/initial_gc.pt')) for model in client_models]
+    #global_model.load_state_dict(torch.load('/home/kaies/csb/data/dca/initial_gc.pt'))
     
     optimizers = [torch.optim.RMSprop(model.parameters(), lr=lr) for model in client_models]
     schedulers = [torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=reduce_lr) for optimizer in optimizers]
