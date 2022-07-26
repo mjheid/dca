@@ -21,9 +21,9 @@ do
                         python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/' --local_epoch $local_epoch --param_factor 1 --reduce_lr 2000
                         #python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
                         #python3 -m run -clients 1 --name "local" -b $batchsize --lr $lr -e $epoch -g True -input '/data/global/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
-                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/' --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
-                        #python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
-                        #python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
+                        python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input2/' --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
+                        #python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input2/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
+                        #python3 -m run -clients 2 --name "client2" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input2/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
                         python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/' --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
                         #python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
                         #python3 -m run -clients 3 --name "client3" -b $batchsize --lr $lr -e $epoch -g True -input '/data/input3/'  --local_epoch $local_epoch  --param_factor 1 --reduce_lr 2000
