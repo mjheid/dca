@@ -33,8 +33,8 @@ class AutoEncoder(torch.nn.Module):
             OrderedDict([
             ('linear1', torch.nn.Linear(self.input_size, self.encoder_size, bias=True)),
             #('bn1', torch.nn.BatchNorm1d(self.encoder_size)),
-            #('ln1', torch.nn.LayerNorm(self.encoder_size)),
-            ('gn1', torch.nn.GroupNorm(4, self.encoder_size)),
+            ('ln1', torch.nn.LayerNorm(self.encoder_size)),
+            #('gn1', torch.nn.GroupNorm(4, self.encoder_size)),
             ('relu1', torch.nn.ReLU())
             ]))
         
@@ -42,8 +42,8 @@ class AutoEncoder(torch.nn.Module):
             OrderedDict([
             ('linear2', torch.nn.Linear(self.encoder_size, self.bottleneck_size, bias=True)),
             #('bn2', torch.nn.BatchNorm1d(self.bottleneck_size)),
-            #('ln2', torch.nn.LayerNorm(self.bottleneck_size)),
-            ('gn2', torch.nn.GroupNorm(4, self.bottleneck_size)),
+            ('ln2', torch.nn.LayerNorm(self.bottleneck_size)),
+            #('gn2', torch.nn.GroupNorm(4, self.bottleneck_size)),
             ('relu2', torch.nn.ReLU())
             ]))
 
@@ -51,8 +51,8 @@ class AutoEncoder(torch.nn.Module):
             OrderedDict([
             ('linear3', torch.nn.Linear(self.bottleneck_size, self.encoder_size, bias=True)),
             #('bn3', torch.nn.BatchNorm1d(self.encoder_size)),
-            #('ln3', torch.nn.LayerNorm(self.encoder_size)),
-            ('gn3', torch.nn.GroupNorm(4, self.encoder_size)),
+            ('ln3', torch.nn.LayerNorm(self.encoder_size)),
+            #('gn3', torch.nn.GroupNorm(4, self.encoder_size)),
             ('relu3', torch.nn.ReLU())
             ]))
         

@@ -256,6 +256,9 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     torch.backends.cudnn.deterministic = True
     os.environ['PYTHONHASHSEED'] = f'{seed}'
 
+    import pandas as pd
+    og_data = pd.read_csv('/home/kaies/csb/data/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv', header=0, index_col='Gene').transpose().to_numpy()
+
     datasets = [threadedGeneCountData(path, device, transpose=transpose,
                         loginput=loginput, norminput=norminput, test_split=test_split,
                         filter_min_counts=filter_min_counts, size_factor=size_factor) for path in inputfiles]
@@ -269,7 +272,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     client_lens = [trainDataLoader.__len__() for trainDataLoader in trainDataLoaders]
     [dataset.set_mode(dataset.val) for dataset in datasets]
     valDataLoaders = [DataLoader(dataset, batch_size=batch_size) for dataset in datasets]
-    globalDataLoader = DataLoader(global_dataset, batch_size=batch_size)
+    globalDataLoader = DataLoader(global_dataset, batch_size=global_dataset.__len__())
     if modeltype == 'zinb':
         global_model = ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
         client_models = [ZINBAutoEncoder(input_size=input_size, encoder_size=encoder_size, bottleneck_size=bottleneck_size).to(device)
@@ -312,7 +315,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             p = mp.Process(target=global_agg, args=(client_models,
                             global_model, loss, globalDataLoader,
                             name, client_lens, param_factor, aggregate_flag, events,
-                            es_count[rank], earlystopping[-1], earlystopping[rank-1], early_stopping, EPOCH, modeltype))
+                            es_count[rank], earlystopping[-1], earlystopping[rank-1], early_stopping, EPOCH, modeltype, global_dataset, og_data))
             p.start()
             processes.append(p)
     for p in processes:
@@ -332,6 +335,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
 
     adata = global_dataset.adata_true.copy()
     adata.X = mean.detach().cpu().numpy()
+    adata.obs['dca_split'] = global_dataset.sf['dca_split'].values
 
     return adata, l.item(), global_model, epoch
 

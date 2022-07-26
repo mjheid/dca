@@ -330,10 +330,15 @@ def train_client(model,
 def global_agg(client_models,
                 global_model, loss, globalDataLoader,
                 name, client_lens, param_factor, aggregate_flag, events,
-                es_count, earlystopping_own, earlystopping_prev, early_stopping, EPOCH, modeltype):
+                es_count, earlystopping_own, earlystopping_prev, early_stopping, EPOCH, modeltype, dataset, og_data):
 
     best_val_loss = float('inf')
     avg_loss = float('inf')
+    loss_list = []
+    acc_list = []
+    std_list = []
+    acc_val_list = []
+    std_val_list = []
     for epoch in range(EPOCH):
         if earlystopping_own.is_set():
             for event in events:
@@ -356,12 +361,28 @@ def global_agg(client_models,
 
                     test_loss += l.item()
                 avg_loss = test_loss / len(globalDataLoader)
+                loss_list.append(avg_loss)
+                acc = np.mean(np.sqrt((og_data - mean.detach().cpu().numpy())**2))
+                std = np.std(np.sqrt((og_data - mean.detach().cpu().numpy())**2))
+                acc_val = np.mean(np.sqrt((og_data[dataset.sf['dca_split']==1] - mean.detach().cpu().numpy()[dataset.sf['dca_split']==1])**2))
+                std_val = np.std(np.sqrt((og_data[dataset.sf['dca_split']==1] - mean.detach().cpu().numpy()[dataset.sf['dca_split']==1])**2))
+                print('acc: ',acc)
+                print('std:', std)
+                acc_list.append(acc)
+                std_list.append(std)
+                acc_val_list.append(acc_val)
+                std_val_list.append(std_val)
                 print(f'Global avg test loss: {avg_loss}')
                 if avg_loss < best_val_loss:
                     best_val_loss = avg_loss
                     es_count = 0
                     earlystopping_own.set()
                     torch.save({'model': global_model.state_dict(),
+                                'loss': loss_list,
+                                'acc': acc_list,
+                                'std': std_list,
+                                'acc_val': acc_val_list,
+                                'std_val': std_val_list,
                                 'epoch': epoch}, 'data/checkpoints/'+name+f'_global.pt')
                 else:
                     es_count += 1
@@ -458,17 +479,22 @@ def gen_iid_client_data(path, num_clients, name='', ptrn_data='data', ptrn_norm_
 
 def plot_client_classes(path, ptrn='Group', name='client_data.pdf'):
     paths = sort_paths(path)
-    df = pd.DataFrame()
+    df = pd.DataFrame(['Client'])
     for i in range(len(paths)):
-        path = paths[i][0]
+        path = paths[i][2]
         client = pd.read_csv(path)
         client['Client'] = f'Client {i}'
         df = pd.concat([df, client])
     import matplotlib.pyplot as plt
     import seaborn as sns
-    fig, ax = plt.subplots(1, len(paths), figsize=(16,4))
-    for i in range(len(paths)):
-        sns.countplot(data=df.where(df['Client']==f'Client {i}').dropna(), x='Client', hue='Group', ax=ax[i])
+    ax = sns.countplot(data=df, hue='celltype', x='Client')
+    ax.legend()#(bbox_to_anchor=(0.99, 1.05))
+    print(df.Client.unique())
+    for v in df.Client.unique()[:-1]:
+        plt.axvline(x=v, color='black', linestyle='dotted')
+    # fig, ax = plt.subplots(1, len(paths), figsize=(16,4))
+    # for i in range(len(paths)):
+    #     sns.countplot(data=df.where(df['Client']==f'Client {i}').dropna(), x='Client', hue='Group', ax=ax[i])
     # lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     # lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
     # fig.legend(lines, labels)
@@ -498,3 +524,60 @@ def parse_log_file(path):
         for key in dic.keys():
             df[key] = dic[key]
         return df
+
+
+def gen_niid_data(data_path, anno_path, num_clients, niidness, output_path, transpose=True, first_col_names=None, name='celltype'):
+    if first_col_names is not None:
+        header = first_col_names
+    else:
+        header = None
+    if transpose:
+        data = pd.read_csv(data_path, header=header).transpose()
+    else:
+        data = pd.read_csv(data_path, header=header)
+    anno = pd.read_csv(anno_path, header=0, index_col=name)
+    labels = anno.index.unique()
+    num_classes = labels.shape[0]
+    from federated_dca.datasets import normalize, read_dataset
+    ndata = read_dataset(data_path, transpose=transpose, first_col_names=first_col_names)
+    ndata = normalize(ndata, filter_min_counts=False)
+
+    norm_data = pd.DataFrame(ndata.X)
+    anno['size_factors'] = ndata.obs.size_factors.values
+    #anno = anno.set_index(name)
+    
+
+    nclients = [pd.DataFrame()] * num_clients
+    dclients = [pd.DataFrame()] * num_clients
+    aclients = [pd.DataFrame()] * num_clients
+
+    j = 0
+    for label in list(range(num_classes)):
+        label = labels[label]
+        i = j
+        start = 0
+        for client in list(range(niidness)):
+            label_loc = anno.index == label
+            atemp = anno[label_loc]
+            dtemp = data[label_loc]
+            ntemp = norm_data[label_loc]
+            split_len = int(atemp.shape[0] / niidness)
+            if client < niidness-1:
+                aclients[i] = pd.concat([aclients[i], atemp[start:(client+1)*split_len]])
+                dclients[i] = pd.concat([dclients[i], dtemp[start:(client+1)*split_len]])
+                nclients[i] = pd.concat([nclients[i], ntemp[start:(client+1)*split_len]])
+                start += split_len
+            else:
+                aclients[i] = pd.concat([aclients[i], atemp[start:]])
+                dclients[i] = pd.concat([dclients[i], dtemp[start:]])
+                nclients[i] = pd.concat([nclients[i], ntemp[start:]])
+            i += 1
+            if i == num_clients:
+                i = 0
+        j += 1
+        if j == num_clients:
+            j = 0
+    for i in list(range(len(aclients))):
+        nclients[i].to_csv(output_path+'norm'+'_'+str(i+1)+'.csv', header=None, index=None)
+        dclients[i].to_csv(output_path+'data'+'_'+str(i+1)+'.csv', header=None, index=None)
+        aclients[i].to_csv(output_path+'anno'+'_'+str(i+1)+'.csv')

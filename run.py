@@ -60,6 +60,7 @@ if __name__ == '__main__':
     param_factor = args.param_factor
     seed = args.seed
     local_epoch = args.local_epoch
+    name = name + f'_{local_epoch}'
 
     from federated_dca.train import train_with_clients, train
     import scanpy as sc
@@ -90,6 +91,7 @@ if __name__ == '__main__':
     
     
     if args.gridsearch:
+        adata2 = adata.copy()
         sc.pp.normalize_total(adata)
         sc.pp.log1p(adata)
         sc.pp.pca(adata)
@@ -98,6 +100,15 @@ if __name__ == '__main__':
         adata.obs['Group'] = adata.obs.index.values
         sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs.Group)
         print(f'SIL score: {sil_score}')
+        adata2 = adata2[adata2.obs.dca_split==1]
+        sc.pp.normalize_total(adata2)
+        sc.pp.log1p(adata2)
+        sc.pp.pca(adata2)
+        sc.pp.neighbors(adata2)
+        sc.tl.umap(adata2)
+        adata2.obs['Group'] = adata2.obs.index.values
+        sil_score_val = silhouette_score(adata2.obsm['X_umap'], adata2.obs.Group)
+        print(f'SIL score Val: {sil_score_val}')
 
         import os.path
         import torch
@@ -134,7 +145,18 @@ if __name__ == '__main__':
             fig, axs = plt.subplots(1, 1, figsize=(6,4))
             sc.pl.umap(adatas6, color='Group', size=20, title=adata_labels6, ax=axs, show=False, legend_loc='none')
             plt.tight_layout()
-            plt.savefig(f'{name}_cluster.pdf')
+            plt.savefig(f'{name}_cluster.png')
+            plt.close()
+            adatas6 = adata2
+            fig, axs = plt.subplots(1, 1, figsize=(6,4))
+            sc.pl.umap(adatas6[adatas6.obs.dca_split==1], color='Group', size=20, title=adata_labels6, ax=axs, show=False, legend_loc='none')
+            plt.tight_layout()
+            plt.savefig(f'{name}_cluster_val.png')
+            plt.close()
+            acc = torch.load('data/checkpoints/'+name+f'_global.pt')['acc']
+            fig, axs = plt.subplots(1, 1, figsize=(6,4))
+            axs.plot(acc, list(range(len(acc))))
+            plt.savefig(f'{name}_acc.png')
             plt.close()
         with open('data/checkpoints/log.txt', 'a') as logfile:
-            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}, cl: {num_clients}, le: {local_epoch}' + os.linesep)
+            logfile.write(f'Name: {name}, Epoch: {epoch}, model: {modeltype}, loss: {best_total_loss}, sil: {sil_score}, lr: {lr}, batch: {batch_size}, r_lr: {reduce_lr}, e_st: {early_stopping}, pf: {param_factor}, cl: {num_clients}, le: {local_epoch}, sil_v: {sil_score_val}' + os.linesep)
