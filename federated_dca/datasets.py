@@ -140,6 +140,68 @@ class threadedGeneCountData(GeneCountData):
         self.mode = self.test
 
 
+class classiGeneCountData(GeneCountData):
+    def __init__(self, path='data/francesconi/francesconi_withDropout.csv', device='cpu',
+                transpose=True, check_count=False, test_split=True, loginput=False,
+                 norminput=False, filter_min_counts=False, first_col_names=True, size_factor=False):
+        
+        self.adata_true = read_dataset(path[0],
+                            transpose=transpose, # assume gene x cell by default
+                            check_counts=check_count,
+                            test_split=False,
+                            first_col_names=first_col_names)
+        adata_raw = read_dataset(path[1],
+                            transpose=transpose, # assume gene x cell by default
+                            check_counts=check_count,
+                            test_split=False,
+                            first_col_names=first_col_names)
+        self.adata_raw = normalize(adata_raw,
+                            filter_min_counts=filter_min_counts,
+                            size_factors=size_factor,
+                            logtrans_input=loginput,
+                            normalize_input=norminput)
+        self.sf = pd.read_csv(path[2])
+
+        classes = self.sf['celltype'].unique()
+        dic = {}
+        for i in list(range(len(classes))):
+            t = torch.tensor([0]*len(classes))
+            t[i] = 1
+            dic[classes[i]] = t
+        self.sf['class_tensor'] = [torch.tensor([0]*len(classes), dtype=int)] * self.sf.shape[0]
+        self.sf = self.sf.assign(class_tensor=self.sf.celltype.map(dic).fillna(self.sf.class_tensor))
+
+        self.data = torch.from_numpy(np.array(self.adata_raw.X)).to(device)
+        #why do i have to do this??? there should be a better way, but from_numpy doesnt work
+        size_factor = torch.zeros((self.sf.shape[0], len(classes)))
+        for i in list(range(self.sf.shape[0])):
+            size_factor[i] = self.sf['class_tensor'].values[i]
+        self.size_factors = size_factor.to(device)
+        self.target = torch.from_numpy(np.array(self.adata_true.X)).to(device)
+        self.gene_num = self.data.shape[1]
+
+        if test_split:
+            train_idx, test_idx = train_test_split(np.arange(self.adata_true.n_obs), test_size=0.4, random_state=42)
+            spl = pd.Series(['train'] * self.adata_true.n_obs)
+            spl.iloc[test_idx] = 'test'
+            self.adata_true.obs['dca_split'] = spl.values
+            self.adata_raw.obs['dca_split'] = spl.values
+            self.sf['dca_split'] = spl.values
+
+            self.val_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'test'].X)).to(device)
+            self.val_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'test'].X)).to(device)
+            self.val_size_factors = self.size_factors[self.sf.dca_split == 'test'].to(device)
+
+            self.train_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'train'].X)).to(device)
+            self.train_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'train'].X)).to(device)
+            self.train_size_factors = self.size_factors[self.sf.dca_split == 'train'].to(device)
+    
+        self.train = 0
+        self.val = 1
+        self.test = 2
+        self.mode = self.test
+
+
 def read_dataset(adata, transpose=False, test_split=False, copy=False, check_counts=True, first_col_names=True):
 
     if isinstance(adata, sc.AnnData):
