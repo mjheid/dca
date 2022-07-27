@@ -155,7 +155,7 @@ if __name__ == '__main__':
             plt.close()
             acc = torch.load('data/checkpoints/'+name+f'_global.pt')['acc']
             fig, axs = plt.subplots(1, 1, figsize=(6,4))
-            axs.plot(acc, list(range(len(acc))))
+            axs.plot(list(range(len(acc))), acc)
             plt.savefig(f'{name}_acc.png')
             plt.close()
         with open('data/checkpoints/log.txt', 'a') as logfile:
