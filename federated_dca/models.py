@@ -145,19 +145,14 @@ class Classifier(torch.nn.Module):
 
         self.conv = torch.nn.Conv1d(input_size, conv_out_size, kernel_size)
         self.pool = torch.nn.MaxPool1d(kernel_size)
-        self.conv1 = torch.nn.Conv1d(conv_out_size, 64, kernel_size)
-        self.pool1 = torch.nn.MaxPool1d(kernel_size)
-        self.dense = torch.nn.Linear(64, 32)
-        self.dense1 = torch.nn.Linear(32, num_classes)
+        self.dense = torch.nn.Linear(conv_out_size, num_classes)
         self.sm = torch.nn.Softmax()
         self.relu = torch.nn.ReLU()
     
     def forward(self, data):
         data = self.relu(self.conv(data.unsqueeze(2)))
         data = self.pool(data)
-        data = self.relu(self.pool1(self.conv1(data)))
         data = self.dense(data.squeeze(2))
-        data = self.dense1(data)
         data = self.sm(data)
 
         return data
