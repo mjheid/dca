@@ -114,7 +114,7 @@ class threadedGeneCountData(GeneCountData):
         self.sf = pd.read_csv(path[2])
 
         self.data = torch.from_numpy(np.array(self.adata_raw.X)).to(device)
-        self.size_factors = torch.from_numpy(np.array(self.sf['0'].values)).to(device)
+        self.size_factors = torch.from_numpy(np.array(self.sf['size_factors'].values)).to(device)
         self.target = torch.from_numpy(np.array(self.adata_true.X)).to(device)
         self.gene_num = self.data.shape[1]
 
@@ -128,11 +128,11 @@ class threadedGeneCountData(GeneCountData):
 
             self.val_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'test'].X)).to(device)
             self.val_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'test'].X)).to(device)
-            self.val_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'test']['0'])).to(device)
+            self.val_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'test']['size_factors'])).to(device)
 
             self.train_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'train'].X)).to(device)
             self.train_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'train'].X)).to(device)
-            self.train_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'train']['0'])).to(device)
+            self.train_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'train']['size_factors'])).to(device)
     
         self.train = 0
         self.val = 1
@@ -181,7 +181,7 @@ class classiGeneCountData(GeneCountData):
         self.gene_num = self.data.shape[1]
 
         if test_split:
-            train_idx, test_idx = train_test_split(np.arange(self.adata_true.n_obs), test_size=0.4, random_state=42)
+            train_idx, test_idx = train_test_split(np.arange(self.adata_true.n_obs), test_size=0.3, random_state=42)
             spl = pd.Series(['train'] * self.adata_true.n_obs)
             spl.iloc[test_idx] = 'test'
             self.adata_true.obs['dca_split'] = spl.values
