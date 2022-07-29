@@ -498,3 +498,61 @@ def parse_log_file(path):
         for key in dic.keys():
             df[key] = dic[key]
         return df
+
+
+def gen_niid_data(data_path, anno_path, num_clients, niidness, output_path, transpose=True, first_col_names=None, name='celltype'):
+    if first_col_names is not None:
+        header = first_col_names
+    else:
+        header = None
+    if transpose:
+        data = pd.read_csv(data_path, header=header).transpose()
+    else:
+        data = pd.read_csv(data_path, header=header)
+    anno = pd.read_csv(anno_path, header=0, index_col=name)
+    labels = anno.index.unique()
+    num_classes = labels.shape[0]
+    from federated_dca.datasets import normalize, read_dataset
+    ndata = read_dataset(data_path, transpose=transpose, first_col_names=first_col_names)
+    ndata = normalize(ndata, filter_min_counts=False)
+
+    norm_data = pd.DataFrame(ndata.X)
+    anno['size_factors'] = ndata.obs.size_factors.values
+    #anno = anno.set_index(name)
+    
+
+    nclients = [pd.DataFrame()] * num_clients
+    dclients = [pd.DataFrame()] * num_clients
+    aclients = [pd.DataFrame()] * num_clients
+
+    j = 0
+    for label in list(range(num_classes)):
+        label = labels[label]
+        i = j
+        start = 0
+        for client in list(range(niidness)):
+            label_loc = anno.index == label
+            atemp = anno[label_loc]
+            dtemp = data[label_loc]
+            ntemp = norm_data[label_loc]
+            split_len = int(atemp.shape[0] / niidness)
+            if client < niidness-1:
+                aclients[i] = pd.concat([aclients[i], atemp[start:(client+1)*split_len]])
+                dclients[i] = pd.concat([dclients[i], dtemp[start:(client+1)*split_len]])
+                nclients[i] = pd.concat([nclients[i], ntemp[start:(client+1)*split_len]])
+                start += split_len
+            else:
+                aclients[i] = pd.concat([aclients[i], atemp[start:]])
+                dclients[i] = pd.concat([dclients[i], dtemp[start:]])
+                nclients[i] = pd.concat([nclients[i], ntemp[start:]])
+            i += 1
+            if i == num_clients:
+                i = 0
+        j += 1
+        if j == num_clients:
+            j = 0
+    for i in list(range(len(aclients))):
+        nclients[i].to_csv(output_path+'norm'+'_'+str(i+1)+'.csv', header=None, index=None)
+        dclients[i].to_csv(output_path+'data'+'_'+str(i+1)+'.csv', header=None, index=None)
+        aclients[i].to_csv(output_path+'anno'+'_'+str(i+1)+'.csv')
+
