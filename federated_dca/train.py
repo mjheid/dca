@@ -331,6 +331,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             l = loss(data, mean, disp)
 
     adata = global_dataset.adata_true.copy()
+    adata.obs['Group'] = global_dataset.sf['celltype'].values
     adata.X = mean.detach().cpu().numpy()
 
     return adata, l.item(), global_model, epoch

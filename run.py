@@ -61,7 +61,7 @@ if __name__ == '__main__':
     seed = args.seed
     local_epoch = args.local_epoch
 
-    from federated_dca.train import train_with_clients, train
+    from federated_dca.train import train_with_clients
     import scanpy as sc
     from sklearn.metrics import silhouette_score
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         sc.pp.pca(adata)
         sc.pp.neighbors(adata)
         sc.tl.umap(adata)
-        adata.obs['Group'] = adata.obs.index.values
+        #adata.obs['Group'] = adata.obs.index.values
         sil_score = silhouette_score(adata.obsm['X_umap'], adata.obs.Group)
         print(f'SIL score: {sil_score}')
 
