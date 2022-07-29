@@ -119,7 +119,7 @@ class threadedGeneCountData(GeneCountData):
         self.gene_num = self.data.shape[1]
 
         if test_split:
-            train_idx, test_idx = train_test_split(np.arange(self.adata_true.n_obs), test_size=0.1, random_state=42)
+            # train_idx, test_idx = train_test_split(np.arange(self.adata_true.n_obs), test_size=0.1, random_state=42)
             # spl = pd.Series(['train'] * self.adata_true.n_obs)
             # spl.iloc[test_idx] = 'test'
             # self.adata_true.obs['dca_split'] = spl.values

@@ -2,9 +2,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import torch.multiprocessing as mp
-from federated_dca.datasets import GeneCountData, threadedGeneCountData
+from federated_dca.datasets import GeneCountData, threadedGeneCountData, classiGeneCountData
 from federated_dca.loss import ZINBLoss, NBLoss
-from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder
+from federated_dca.models import ZINBAutoEncoder, NBAutoEncoder, Classifier
 from federated_dca.utils import save_and_load_init_model, train_client, global_agg, sort_paths
 import random
 import os
@@ -335,4 +335,94 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
 
     return adata, l.item(), global_model, epoch
 
+
+def train_classifier(path='/data/global/', EPOCH=500, lr=0.1,
+        transpose=True, reduce_lr=10, early_stopping=15,
+        name='test', loginput=True, norminput=True,
+        batchsize=32, seed=42, input_size=199, 
+        conv_out=64, kernel=1, num_classes=6, first_col_names=False):
     
+    # Seed
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    os.environ['PYTHONHASHSEED'] = f'{seed}'
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    directory = os.path.abspath(os.getcwd())
+    global_input = sort_paths(directory+path, client=False)[0]
+    # global_input = ['/home/kaies/csb/data/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv',
+    #                     '/home/kaies/csb/data/dca/data/sixgroupsimulation/sixgroupsimulation_withoutDropout.csv',
+    #                     '/home/kaies/csb/data/dca/data/global/anno_1.csv']
+
+    dataset = classiGeneCountData(global_input, device, transpose=transpose, first_col_names=first_col_names,
+                                    loginput=loginput, norminput=norminput)
+    dataset.set_mode(dataset.train)
+    trainDataLoader = torch.utils.data.DataLoader(dataset, batch_size=batchsize, shuffle=True)
+    dataset.set_mode(dataset.val)
+    valDataLoader = torch.utils.data.DataLoader(dataset, batch_size=batchsize)
+    dataset.set_mode(dataset.test)
+    testDataLoader = torch.utils.data.DataLoader(dataset, batch_size=dataset.__len__())
+
+    cls = Classifier(input_size, conv_out, kernel, num_classes).to(device)
+
+    loss = torch.nn.CrossEntropyLoss()
+
+    opt = torch.optim.SGD(cls.parameters(), lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode='min', patience=reduce_lr)
+    run = True
+    run_i = 0
+    best_val = float('inf')
+    for epoch in list(range(EPOCH)):
+        if run:
+            print(epoch)
+            dataset.set_mode(dataset.train)
+            train = 0
+            for data, target, size_factor in trainDataLoader:
+                prediction = cls(data)
+
+                l = loss(prediction, torch.argmax(size_factor, dim=1))
+
+                opt.zero_grad()
+                l.backward()
+                opt.step()
+
+                train += l.item()
+            avg_loss = train / len(trainDataLoader)
+            print(f'Avg loss: {avg_loss}')
+
+            val = 0
+            dataset.set_mode(dataset.val)
+            with torch.no_grad():
+                for data, target, size_factor in valDataLoader:
+                    prediction = cls(data)
+
+                    l = loss(prediction, torch.argmax(size_factor, dim=1))
+
+                    val += l.item()
+                avg_val_loss = val / len(valDataLoader)
+                scheduler.step(avg_val_loss)
+                print(f'Avg val loss: {avg_val_loss}')
+                if avg_val_loss < best_val:
+                    best_val = avg_val_loss
+                    run_i = 0
+                    torch.save(cls.parameters(), 'data/checkpoints/'+name+f'_cls.pt')
+                else:
+                    run_i += 1
+                run == run_i < early_stopping
+        
+    with torch.no_grad():
+        dataset.set_mode(dataset.test)
+        cls.load_state_dict(torch.load('data/checkpoints/'+name+f'_cls.pt'))
+        for data, target, size_factor in testDataLoader:
+            prediction = cls(data)
+        result = torch.eq(torch.argmax(prediction, dim=1), torch.argmax(size_factor, dim=1))
+        print(torch.sum(result))
+        print(result.shape[0])
+        print(torch.sum(result)/result.shape[0])
+        print(torch.argmax(prediction, dim=1))
