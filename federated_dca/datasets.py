@@ -120,19 +120,19 @@ class threadedGeneCountData(GeneCountData):
 
         if test_split:
             train_idx, test_idx = train_test_split(np.arange(self.adata_true.n_obs), test_size=0.1, random_state=42)
-            spl = pd.Series(['train'] * self.adata_true.n_obs)
-            spl.iloc[test_idx] = 'test'
-            self.adata_true.obs['dca_split'] = spl.values
-            self.adata_raw.obs['dca_split'] = spl.values
-            self.sf['dca_split'] = spl.values
+            # spl = pd.Series(['train'] * self.adata_true.n_obs)
+            # spl.iloc[test_idx] = 'test'
+            # self.adata_true.obs['dca_split'] = spl.values
+            # self.adata_raw.obs['dca_split'] = spl.values
+            # self.sf['dca_split'] = spl.values
 
-            self.val_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'test'].X)).to(device)
-            self.val_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'test'].X)).to(device)
-            self.val_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'test']['size_factors'])).to(device)
+            self.val_data = torch.from_numpy(np.array(self.adata_raw[self.sf.dca_split == 1].X)).to(device)
+            self.val_target = torch.from_numpy(np.array(self.adata_true[self.sf.dca_split == 1].X)).to(device)
+            self.val_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 1]['size_factors'])).to(device)
 
-            self.train_data = torch.from_numpy(np.array(self.adata_raw[self.adata_raw.obs.dca_split == 'train'].X)).to(device)
-            self.train_target = torch.from_numpy(np.array(self.adata_true[self.adata_true.obs.dca_split == 'train'].X)).to(device)
-            self.train_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 'train']['size_factors'])).to(device)
+            self.train_data = torch.from_numpy(np.array(self.adata_raw[self.sf.dca_split == 0].X)).to(device)
+            self.train_target = torch.from_numpy(np.array(self.adata_true[self.sf.dca_split == 0].X)).to(device)
+            self.train_size_factors = torch.from_numpy(np.array(self.sf[self.sf.dca_split == 0]['size_factors'])).to(device)
     
         self.train = 0
         self.val = 1
