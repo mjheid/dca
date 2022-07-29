@@ -233,7 +233,7 @@ def train_nb(path='', EPOCH=500, lr=0.001, batch=32,
 
 def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False, loginput=False, norminput=False,
             test_split=0.1, filter_min_counts=False, size_factor=False, batch_size=32,
-            encoder_size=64, bottleneck_size=32, ridge=0.0, name='dca',
+            encoder_size=64, bottleneck_size=32, ridge=0.0, name='dca', first_col_names=True,
             lr=0.001, reduce_lr=10, early_stopping=15, EPOCH=500, local_epoch=1,
             modeltype='zinb', path_global='/data/global/', param_factor=1, seed=42):
 
@@ -256,11 +256,11 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
     torch.backends.cudnn.deterministic = True
     os.environ['PYTHONHASHSEED'] = f'{seed}'
 
-    datasets = [threadedGeneCountData(path, device, transpose=transpose,
+    datasets = [threadedGeneCountData(path, device, transpose=transpose, first_col_names=first_col_names,
                         loginput=loginput, norminput=norminput, test_split=test_split,
                         filter_min_counts=filter_min_counts, size_factor=size_factor) for path in inputfiles]
     global_dataset = threadedGeneCountData(global_input, device, transpose=transpose,
-                        loginput=loginput, norminput=norminput, test_split=test_split,
+                        loginput=loginput, norminput=norminput, test_split=test_split, first_col_names=first_col_names,
                         filter_min_counts=filter_min_counts, size_factor=size_factor)
     input_size = datasets[0].gene_num
 

@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('-pf', '--param_factor', type=float, default=0.1)
     parser.add_argument('-g', '--gridsearch', type=bool, default=False)
     parser.add_argument('-le', '--local_epoch', type=int, default=1)
+    parser.add_argument('-fcn', '--first_col_names', type=bool, default=True)
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -60,6 +61,7 @@ if __name__ == '__main__':
     param_factor = args.param_factor
     seed = args.seed
     local_epoch = args.local_epoch
+    first_col_names = args.first_col_names
 
     from federated_dca.train import train_with_clients
     import scanpy as sc
