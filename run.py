@@ -30,10 +30,10 @@ def parse_args():
     parser.add_argument('--early_stopping', type=int, default=25)
     parser.add_argument('-e', '--epoch', type=int, default=500)
     parser.add_argument('--model', type=str, default='zinb')
-    parser.add_argument('-pf', '--param_factor', type=float, default=0.1)
+    parser.add_argument('-pf', '--param_factor', type=float, default=1.0)
     parser.add_argument('-g', '--gridsearch', type=bool, default=False)
     parser.add_argument('-le', '--local_epoch', type=int, default=1)
-    parser.add_argument('-fcn', '--first_col_names', type=bool, default=True)
+    parser.add_argument('-fcn', '--first_col_names', type=bool, default=False)
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -88,7 +88,8 @@ if __name__ == '__main__':
                 path_global=path_global,
                 param_factor=param_factor,
                 seed=seed, 
-                local_epoch=local_epoch)
+                local_epoch=local_epoch,
+                first_col_names=first_col_names)
     
     
     if args.gridsearch:
