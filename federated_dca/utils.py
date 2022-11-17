@@ -267,14 +267,14 @@ def train_client(model,
         if  earlystopping_cond.is_set():
             train_loss = 0
             model.train()
-            dataset.set_mode(dataset.train)
+            dataset.set_mode(dataset.test)
             print(f'Epoch: {epoch}')
             for data, target, size_factor in trainDataLoader:
                 if modeltype == 'zinb':
                     mean, disp, drop = model(data, size_factor)
                     l = loss(target, mean, disp, drop)
                 else:
-                    mean, disp = model(data)
+                    mean, disp = model(data, size_factor)
                     l = loss(data, mean, disp)
 
                 optimizer.zero_grad()
@@ -290,13 +290,13 @@ def train_client(model,
             val_loss = 0
             with torch.no_grad():
                 model.eval()
-                dataset.set_mode(dataset.val)
+                dataset.set_mode(dataset.test)
                 for data, target, size_factor in valDataLoader:
                     if modeltype == 'zinb':
                         mean, disp, drop = model(data, size_factor)
                         l = loss(target, mean, disp, drop)
                     else:
-                        mean, disp = model(data)
+                        mean, disp = model(data, size_factor)
                         l = loss(data, mean, disp)
 
                     val_loss += l.item()
@@ -351,7 +351,7 @@ def global_agg(client_models,
                         mean, disp, drop = global_model(data, size_factor)
                         l = loss(target, mean, disp, drop)
                     else:
-                        mean, disp = global_model(data)
+                        mean, disp = global_model(data, size_factor)
                         l = loss(data, mean, disp)
 
                     test_loss += l.item()
@@ -370,6 +370,8 @@ def global_agg(client_models,
         else:
             aggregate_flag.set()
             earlystopping_own.clear()
+    aggregate_flag.set()
+    earlystopping_own.clear()
     print(f'Global, Best val loss: {best_val_loss}')
 
 
@@ -460,19 +462,17 @@ def plot_client_classes(path, ptrn='Group', name='client_data.pdf'):
     paths = sort_paths(path)
     df = pd.DataFrame()
     for i in range(len(paths)):
-        path = paths[i][0]
-        client = pd.read_csv(path)
-        client['Client'] = f'Client {i}'
+        path = paths[i][2]
+        client = pd.read_csv(path, header=0)
+        client['Client'] = f'{i}'
         df = pd.concat([df, client])
     import matplotlib.pyplot as plt
     import seaborn as sns
-    fig, ax = plt.subplots(1, len(paths), figsize=(16,4))
-    for i in range(len(paths)):
-        sns.countplot(data=df.where(df['Client']==f'Client {i}').dropna(), x='Client', hue='Group', ax=ax[i])
-    # lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
-    # lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
-    # fig.legend(lines, labels)
-    # plt.show()
+    ax = sns.countplot(data=df, hue='celltype', x='Client')
+    for v in df.Client.unique():
+        plt.axvline(x=v, color='black', linestyle='dotted')
+    ax.legend(bbox_to_anchor=(0.99, 1.05))
+    plt.tight_layout()
     plt.savefig(name)
 
 
@@ -506,9 +506,9 @@ def gen_niid_data(data_path, anno_path, num_clients, niidness, output_path, tran
     else:
         header = None
     if transpose:
-        data = pd.read_csv(data_path, header=header).transpose()
+        data = pd.read_csv(data_path, header=header, index_col=name).transpose()
     else:
-        data = pd.read_csv(data_path, header=header)
+        data = pd.read_csv(data_path, header=header, index_col=first_col_names)
     anno = pd.read_csv(anno_path, header=0, index_col=name)
     labels = anno.index.unique()
     num_classes = labels.shape[0]

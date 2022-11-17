@@ -327,7 +327,7 @@ def train_with_clients(inputfiles='/data/input/', num_clients=2, transpose=False
             mean, disp, drop = global_model(data, size_factor)
             l = loss(target, mean, disp, drop)
         else:
-            mean, disp = global_model(data)
+            mean, disp = global_model(data, size_factor)
             l = loss(data, mean, disp)
 
     adata = global_dataset.adata_true.copy()

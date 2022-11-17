@@ -1,19 +1,109 @@
-from dca.api import dca
+import pandas as pd
+import scanpy as sc
+import numpy as np
 
-dca_zinb = dca('/home/kaies/csb/dca/data/test.csv', ae_type='zinb-conddisp', normalize_per_cell=False,
-                    scale=False, log1p=False, batchnorm=False, epochs=1, learning_rate=0.001, transpose=True,
-                    name='test0', batch_size=1)
+from federated_dca.datasets import write_text_matrix, GeneCountData
 
-from dca.loss import ZINB
-import tensorflow as tf
+dataset_true = GeneCountData('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', filter_min_counts=False, transpose=True, loginput=False, norminput=False, size_factor=False)
+dataset = GeneCountData('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', filter_min_counts=False, transpose=True, loginput=True, norminput=True, size_factor=True)
+pd.DataFrame(dataset.adata.obs['size_factors'].values).to_csv('anno_two.csv')
 
-target = tf.constant([[ 20.,   0.,   0.,  50., 200.,   0.,  30.,   0.,  90.,  10.]])
-mean = tf.constant([[4.4575e-01, 3.2911e+03, 1.0000e+06, 2.2900e-03, 1.6775e+02, 1.0000e-05,
-         1.0000e+06, 1.0000e-05, 5.5417e+05, 1.0000e-05]])
-disp = tf.constant([[3.9533e+01, 1.5560e+01, 1.1123e+01, 6.9109e+00, 3.4450e+01, 9.3383e+00,
-         1.0000e-04, 2.5055e+01, 1.9007e+01, 2.5116e+01]])
-drop = tf.constant([[8.1262e-16, 5.1825e-06, 9.9999e-01, 8.1314e-14, 1.0000e+00, 1.0000e+00,
-         7.6104e-01, 9.7419e-01, 2.2012e-07, 1.0000e+00]])
+group1idx = np.where(dataset.adata.obs.index.values=='Group1')[0]
+group2idx = np.where(dataset.adata.obs.index.values=='Group2')[0]
+group3idx = np.where(dataset.adata.obs.index.values=='Group3')[0]
+group4idx = np.where(dataset.adata.obs.index.values=='Group4')[0]
+group5idx = np.where(dataset.adata.obs.index.values=='Group5')[0]
+group6idx = np.where(dataset.adata.obs.index.values=='Group6')[0]
 
-loss = ZINB(drop, theta=disp)
-l = loss.loss(target, mean)
+pd.DataFrame(dataset.adata.obs['size_factors'][group1idx].values).to_csv('anno_1.csv')
+pd.DataFrame(dataset.adata.obs['size_factors'][group2idx].values).to_csv('anno_2.csv')
+pd.DataFrame(dataset.adata.obs['size_factors'][group3idx].values).to_csv('anno_3.csv')
+pd.DataFrame(dataset.adata.obs['size_factors'][group4idx].values).to_csv('anno_4.csv')
+pd.DataFrame(dataset.adata.obs['size_factors'][group5idx].values).to_csv('anno_5.csv')
+pd.DataFrame(dataset.adata.obs['size_factors'][group6idx].values).to_csv('anno_6.csv')
+
+colnames = dataset.adata.var_names.values
+rownames = dataset.adata.obs_names.values
+write_text_matrix(dataset.adata.X,
+                    'norm_two.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+write_text_matrix(dataset_true.adata.X,
+                    'data_two.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group2idx]
+rownames = dataset.adata.obs_names.values[group2idx]
+write_text_matrix(group,
+                    'norm_2.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group3idx]
+rownames = dataset.adata.obs_names.values[group3idx]
+write_text_matrix(group,
+                    'norm_3.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group4idx]
+rownames = dataset.adata.obs_names.values[group4idx]
+write_text_matrix(group,
+                    'norm_4.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group5idx]
+rownames = dataset.adata.obs_names.values[group5idx]
+write_text_matrix(group,
+                    'norm_5.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+
+group = dataset.adata.X[group6idx]
+rownames = dataset.adata.obs_names.values[group6idx]
+write_text_matrix(group,
+                    'norm_6.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group1idx]
+rownames = dataset.adata.obs_names.values[group1idx]
+write_text_matrix(group,
+                    'norm_1.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+dataset = dataset_true
+
+group = dataset.adata.X[group2idx]
+rownames = dataset.adata.obs_names.values[group2idx]
+write_text_matrix(group,
+                    'data_2.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group3idx]
+rownames = dataset.adata.obs_names.values[group3idx]
+write_text_matrix(group,
+                    'data_3.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group4idx]
+rownames = dataset.adata.obs_names.values[group4idx]
+write_text_matrix(group,
+                    'data_4.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group5idx]
+rownames = dataset.adata.obs_names.values[group5idx]
+write_text_matrix(group,
+                    'data_5.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+
+group = dataset.adata.X[group6idx]
+rownames = dataset.adata.obs_names.values[group6idx]
+write_text_matrix(group,
+                    'data_6.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+
+group = dataset.adata.X[group1idx]
+rownames = dataset.adata.obs_names.values[group1idx]
+write_text_matrix(group,
+                    'data_1.csv',
+                    rownames=rownames, colnames=colnames, transpose=False)
+# print('kek')

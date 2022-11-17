@@ -10,90 +10,90 @@ sc.settings.set_figure_params(dpi=120)
 
 anno = pd.read_csv('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_annotation.csv')
 
-sim_raw = sc.read('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', first_column_names=True).transpose()
-sim_raw.obs['Group'] = anno['Group'].values
-sc.pp.filter_genes(sim_raw, min_counts=1)
+# sim_raw = sc.read('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', first_column_names=True).transpose()
+# sim_raw.obs['Group'] = anno['Group'].values
+# sc.pp.filter_genes(sim_raw, min_counts=1)
 
 
-dca_zinb = pd.read_csv('/home/kaies/Downloads/results_test_2_client_0_fc_featurecloudaidca_511938585/mean.csv', index_col=0).transpose()
-raw_copy = sim_raw.copy()
-dca_zinb = sc.AnnData(dca_zinb.values)
-sc.pp.filter_genes(dca_zinb, min_counts=1)
-raw_copy.X = dca_zinb.X
-dca_zinb = raw_copy
-# dca_zinb = train('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', name='2szinb',
-#                 name2='/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv')
-dca_zinb.obs['Group'] = anno['Group'].values
+# dca_zinb = pd.read_csv('/home/kaies/Downloads/results_test_2_client_0_fc_featurecloudaidca_511938585/mean.csv', index_col=0).transpose()
+# raw_copy = sim_raw.copy()
+# dca_zinb = sc.AnnData(dca_zinb.values)
+# sc.pp.filter_genes(dca_zinb, min_counts=1)
+# raw_copy.X = dca_zinb.X
+# dca_zinb = raw_copy
+# # dca_zinb = train('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv', name='2szinb',
+# #                 name2='/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_witDropout.csv')
+# dca_zinb.obs['Group'] = anno['Group'].values
 
-sim_true = sc.read('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_withoutDropout.csv', first_column_names=True).transpose()
-sim_true.obs['Group'] = anno['Group'].values
-sim_true = sim_true[:, sim_raw.var_names].copy()
+# sim_true = sc.read('/home/kaies/csb/data/dca/data/twogroupsimulation/twogroupsimulation_withoutDropout.csv', first_column_names=True).transpose()
+# sim_true.obs['Group'] = anno['Group'].values
+# sim_true = sim_true[:, sim_raw.var_names].copy()
 
-sim_raw_norm = sim_raw.copy()
-sc.pp.normalize_total(sim_raw_norm)
-sc.pp.log1p(sim_raw_norm)
-sc.pp.pca(sim_raw_norm)
+# sim_raw_norm = sim_raw.copy()
+# sc.pp.normalize_total(sim_raw_norm)
+# sc.pp.log1p(sim_raw_norm)
+# sc.pp.pca(sim_raw_norm)
 
-sim_true_norm = sim_true.copy()
-sc.pp.normalize_total(sim_true_norm)
-sc.pp.log1p(sim_true_norm)
-sc.pp.pca(sim_true_norm)
+# sim_true_norm = sim_true.copy()
+# sc.pp.normalize_total(sim_true_norm)
+# sc.pp.log1p(sim_true_norm)
+# sc.pp.pca(sim_true_norm)
 
-dca_zinb_norm = dca_zinb.copy()
-sc.pp.normalize_total(dca_zinb_norm)
-sc.pp.log1p(dca_zinb_norm)
-sc.pp.pca(dca_zinb_norm)
+# dca_zinb_norm = dca_zinb.copy()
+# sc.pp.normalize_total(dca_zinb_norm)
+# sc.pp.log1p(dca_zinb_norm)
+# sc.pp.pca(dca_zinb_norm)
 
-print(sim_raw)
-print(sim_true)
-print(dca_zinb)
+# print(sim_raw)
+# print(sim_true)
+# print(dca_zinb)
 
-adatas = [sim_true_norm, sim_raw_norm, dca_zinb_norm]
-adata_labels = ['Without\ndropout', 'With\ndropout', 'Denoised\n(ZINB)']
+# adatas = [sim_true_norm, sim_raw_norm, dca_zinb_norm]
+# adata_labels = ['Without\ndropout', 'With\ndropout', 'Denoised\n(ZINB)']
 
-fig, axs = plt.subplots(1, len(adatas), figsize=(14,4))
+# fig, axs = plt.subplots(1, len(adatas), figsize=(14,4))
 
-for i, (lbl, ad, ax) in enumerate(zip(adata_labels, adatas, axs)):
-    sc.pl.pca_scatter(ad, color='Group', size=20, title=lbl, ax=ax, show=False, legend_loc='none')
-    if i!=0: 
-        ax.set_xlabel('')
-        ax.set_ylabel('')
+# for i, (lbl, ad, ax) in enumerate(zip(adata_labels, adatas, axs)):
+#     sc.pl.pca_scatter(ad, color='Group', size=20, title=lbl, ax=ax, show=False, legend_loc='none')
+#     if i!=0: 
+#         ax.set_xlabel('')
+#         ax.set_ylabel('')
         
-plt.tight_layout()
-plt.show()
-plt.close()
+# plt.tight_layout()
+# plt.show()
+# plt.close()
 
-sils = np.array([silhouette_score(ad.obsm['X_pca'][:, :2], 
-                 ad.obs.Group) for ad in adatas])
+# sils = np.array([silhouette_score(ad.obsm['X_pca'][:, :2], 
+#                  ad.obs.Group) for ad in adatas])
 
-f, ax = plt.subplots(figsize=(4,4))
-ax.grid(axis='x')
+# f, ax = plt.subplots(figsize=(4,4))
+# ax.grid(axis='x')
 
-# Choose the width of each bar and their positions
-width = 4
-x_pos = [10,20,30]
+# # Choose the width of each bar and their positions
+# width = 4
+# x_pos = [10,20,30]
  
-# Make the plot
-ax.bar(x_pos, sils, width=width)
-ax.set_xticklabels([''] + adata_labels)
+# # Make the plot
+# ax.bar(x_pos, sils, width=width)
+# ax.set_xticklabels([''] + adata_labels)
 
-for x, t in zip(x_pos, sils):
-    ax.text(x-1, t+0.005, '%.2f' % t)
+# for x, t in zip(x_pos, sils):
+#     ax.text(x-1, t+0.005, '%.2f' % t)
 
-plt.show()
-plt.close()
+# plt.show()
+# plt.close()
 
 anno = pd.read_csv('/home/kaies/csb/data/dca/data/sixgroupsimulation/sixgroupsimulation_annotation.csv')
 
 sim_raw = sc.read('/home/kaies/csb/data/dca/data/sixgroupsimulation/sixgroupsimulation_witDropout.csv', first_column_names=True).transpose()
 sim_raw.obs['Group'] = anno['Group'].values
-sc.pp.filter_genes(sim_raw, min_counts=1)
+#sc.pp.filter_genes(sim_raw, min_counts=1)
 
 
-dca_zinb = pd.read_csv('/home/kaies/Downloads/results_test_2_client_0_fc_featurecloudaidca_984057091/mean.csv', index_col=0).transpose()
+dca_zinb = pd.read_csv('/home/kaies/csb/data/dca/test1.csv', index_col=0).transpose()
 raw_copy = sim_raw.copy()
 dca_zinb = sc.AnnData(dca_zinb.values)
-sc.pp.filter_genes(dca_zinb, min_counts=1)
+#sc.pp.filter_genes(dca_zinb, min_counts=1)
 raw_copy.X = dca_zinb.X
 dca_zinb = raw_copy
 # dca_zinb = train('/home/kaies/csb/dca/data/sixgroupsimulation/sixgroupsimulation_witDropout.csv', name='6szinb',
